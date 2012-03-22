@@ -34,6 +34,7 @@ Gem::Specification.new do |gem|
   gem.add_dependency 'ransack',             '~> 0.6.0'
   gem.add_dependency 'cancan'
   gem.add_dependency 'mailman'
+  gem.add_dependency 'daemons'
 
   gem.add_development_dependency 'rspec-rails',  '~> 2.8.1'
   gem.add_development_dependency 'capybara'
