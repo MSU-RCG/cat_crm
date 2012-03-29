@@ -162,10 +162,10 @@
 # but are disabled by default until ready for general use.
 
 # - Ransack advanced search
-:advanced_search_enabled: false
+:advanced_search_enabled: true
 
 # - PaperTrail history UI
-:paper_trail_ui_enabled: false
+:paper_trail_ui_enabled: true
 
 
 # Background information
