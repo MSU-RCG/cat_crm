@@ -20,7 +20,8 @@ Rails.application.routes.draw do
   resources :comments
   resources :emails
   resources :passwords
-
+  resources :student_reports
+  
   resources :accounts, :id => /\d+/ do
     collection do
       get  :advanced_search
