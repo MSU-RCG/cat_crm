@@ -30,6 +30,7 @@ gem 'responds_to_parent', :git => "https://github.com/LessonPlanet/responds_to_p
 remove 'fat_free_crm'
 
 gem 'pg', '~> 0.13.2'
+gem 'ruport' 
 
 group :development, :test do
   gem 'rspec-rails'
