@@ -39,14 +39,14 @@ set :links, {
 namespace :rails do
   namespace :db do
     task :setup do
-      run "cd #{release_path} && RAILS_ENV=#{rails_env} bundle exec rake db:setup"
+      run "cd #{current_path} && RAILS_ENV=#{rails_env} bundle exec rake db:setup"
     end
 
     task :migrate do
-      run "cd #{release_path} && RAILS_ENV=#{rails_env} bundle exec rake db:migrate"
+      run "cd #{current_path} && RAILS_ENV=#{rails_env} bundle exec rake db:migrate"
     end
   end
-  
+
   namespace :symlink do
     task :setup do
       links[:dirs].each do |l|
@@ -62,6 +62,7 @@ namespace :rails do
   end
 end
 
-after "deploy:setup",       "rails:symlink:setup"
-after "deploy:symlink",     "rails:symlink:link"
-after "deploy",             "rails:db:migrate"
+after "deploy:setup",           "rails:symlink:setup"
+after "deploy:create_symlink",  "rails:symlink:link"
+after "deploy",                 "rails:db:setup"
+after "deploy",                 "rails:db:migrate"
