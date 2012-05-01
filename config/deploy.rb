@@ -8,7 +8,7 @@ set :branch, "server"
 set :deploy_via, :remote_cache
 
 set :scm, :git
-set :repository,  "https://github.com:MSU-RCG/cat_crm.git"
+set :repository,  "https://github.com/MSU-RCG/cat_crm.git"
 
 role :web, "catsrm-nursing.rcg.montana.edu"
 role :app, "catsrm-nursing.rcg.montana.edu"
