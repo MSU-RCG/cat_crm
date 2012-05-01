@@ -17,13 +17,6 @@ GIT
       polyamorous (~> 0.5.0)
 
 GIT
-  remote: git@github.com:MSU-RCG/cat_crm_report_tabs.git
-  revision: dc1750be983647baf6dfb087b9bb7b9a7a362506
-  specs:
-    cat_crm_report_tabs (0.0.1)
-      fat_free_crm
-
-GIT
   remote: https://github.com/LessonPlanet/responds_to_parent.git
   revision: 1f0c6d82eda5e7f331a30fc029e7ead2a7dbdebf
   specs:
@@ -32,28 +25,6 @@ GIT
 PATH
   remote: .
   specs:
-    fat_free_crm (0.11.0)
-      acts-as-taggable-on (~> 2.2.1)
-      acts_as_commentable (~> 3.0.1)
-      acts_as_list (~> 0.1.4)
-      ajax-chosen-rails (>= 0.1.5)
-      authlogic (~> 3.1.0)
-      cancan
-      chosen-rails
-      dynamic_form
-      ffaker (>= 1.12.0)
-      haml (~> 3.1.3)
-      jquery-rails
-      paper_trail
-      paperclip (~> 2.7.0)
-      prototype-rails
-      rails (~> 3.2.2)
-      ransack
-      responds_to_parent
-      sass (~> 3.1.15)
-      simple_form (~> 2.0.1)
-      uglifier
-      will_paginate (~> 3.0.2)
 
 GEM
   remote: http://rubygems.org/
@@ -286,7 +257,6 @@ DEPENDENCIES
   authlogic (~> 3.1.0)
   cancan
   capybara
-  cat_crm_report_tabs!
   chosen-rails!
   coffee-rails (~> 3.2.1)
   database_cleaner
