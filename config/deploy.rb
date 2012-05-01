@@ -43,7 +43,7 @@ namespace :rails do
     end
 
     task :autoupgrade do
-      run "cd #{release_path} && RAILS_ENV=#{rails_env} bundle exec rake db:autoupgrade"
+      run "cd #{release_path} && RAILS_ENV=#{rails_env} bundle exec rake db:migrate"
     end
   end
   
@@ -62,6 +62,6 @@ namespace :rails do
   end
 end
 
-after "deploy:setup",       "sapphire:symlink:setup"
-after "deploy:symlink",     "sapphire:symlink:link"
-after "deploy",             "sapphire:db:autoupgrade"
+after "deploy:setup",       "rails:symlink:setup"
+after "deploy:symlink",     "rails:symlink:link"
+after "deploy",             "rails:db:migrate"
