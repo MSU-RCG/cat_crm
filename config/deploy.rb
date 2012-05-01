@@ -42,7 +42,7 @@ namespace :rails do
       run "cd #{release_path} && RAILS_ENV=#{rails_env} bundle exec rake db:setup"
     end
 
-    task :autoupgrade do
+    task :migrate do
       run "cd #{release_path} && RAILS_ENV=#{rails_env} bundle exec rake db:migrate"
     end
   end
