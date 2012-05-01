@@ -4,11 +4,11 @@ require "bundler/capistrano"
 
 set :rvm_ruby_string, 'ruby-1.9.2-p180@passenger'
 set :application, "catsrm-nursing"
-set :branch, "server"
+set :branch, "master"
 set :deploy_via, :remote_cache
 
 set :scm, :git
-set :repository,  "https://github.com/MSU-RCG/cat_crm.git"
+set :repository,  "git://github.com/MSU-RCG/cat_crm.git"
 
 role :web, "catsrm-nursing.rcg.montana.edu"
 role :app, "catsrm-nursing.rcg.montana.edu"
