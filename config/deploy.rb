@@ -3,16 +3,16 @@ require "rvm/capistrano"                  # Load RVM's capistrano plugin.
 require "bundler/capistrano"
 
 set :rvm_ruby_string, 'ruby-1.9.2-p180@passenger'
-set :application, "catsrm-nursing"
+set :application, "crm"
 set :branch, "master"
 set :deploy_via, :remote_cache
 
 set :scm, :git
 set :repository,  "git://github.com/MSU-RCG/cat_crm.git"
 
-role :web, "catsrm-nursing.rcg.montana.edu"
-role :app, "catsrm-nursing.rcg.montana.edu"
-role :db,  "catsrm-nursing.rcg.montana.edu", :primary => true
+role :web, "crm.rcg.montana.edu"
+role :app, "crm.rcg.montana.edu"
+role :db,  "crm.rcg.montana.edu", :primary => true
 
 set :use_sudo, false
 set :user, "rails"
