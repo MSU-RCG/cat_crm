@@ -44,6 +44,7 @@ require "fat_free_crm/plugin_dependencies"
 
 require "fat_free_crm/version"
 require "fat_free_crm/core_ext"
+require "fat_free_crm/comment_extensions"
 require "fat_free_crm/exceptions"
 require "fat_free_crm/errors"
 require "fat_free_crm/i18n"
@@ -54,5 +55,4 @@ require "fat_free_crm/fields"
 require "fat_free_crm/sortable"
 require "fat_free_crm/tabs"
 require "fat_free_crm/callback"
-require "fat_free_crm/dropbox" if defined?(::Rake)
 require "fat_free_crm/plugin"

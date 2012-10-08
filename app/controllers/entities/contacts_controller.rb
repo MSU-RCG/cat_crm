@@ -22,15 +22,17 @@ class ContactsController < EntitiesController
   # GET /contacts
   #----------------------------------------------------------------------------
   def index
-    @contacts = get_contacts(:page => params[:page])
-    respond_with(@contacts)
+    @contacts = get_contacts(:page     => params[:page],
+                             :per_page => params[:per_page])
+    
+    respond_with @contacts do |format|
+      format.xls { render :layout => 'header' }
+    end
   end
 
   # GET /contacts/1
   #----------------------------------------------------------------------------
   def show
-    @contact = Contact.my.find(params[:id])
-
     respond_with(@contact) do |format|
       format.html do
         @stage = Setting.unroll(:opportunity_stage)
@@ -38,48 +40,44 @@ class ContactsController < EntitiesController
         @timeline = timeline(@contact)
       end
     end
-
-  rescue ActiveRecord::RecordNotFound
-    respond_to_not_found(:html, :json, :xml)
   end
 
   # GET /contacts/new
   #----------------------------------------------------------------------------
   def new
-    @contact  = Contact.new(:user => current_user, :access => Setting.default_access)
-    @account  = Account.new(:user => current_user)
-    if params[:related]
-      model, id = params[:related].split("_")
-      instance_variable_set("@#{model}", model.classify.constantize.my.find(id))
-    end
-    respond_with(@contact)
+    @contact.attributes = {:user => current_user, :access => Setting.default_access, :assigned_to => nil}
+    @account = Account.new(:user => current_user)
 
-  rescue ActiveRecord::RecordNotFound # Kicks in if related asset was not found.
-    respond_to_related_not_found(model, :js) if model
+    if params[:related]
+      model, id = params[:related].split('_')
+      if related = model.classify.constantize.my.find_by_id(id)
+        instance_variable_set("@#{model}", related)
+      else
+        respond_to_related_not_found(model) and return
+      end
+    end
+
+    respond_with(@contact)
   end
 
   # GET /contacts/1/edit                                                   AJAX
   #----------------------------------------------------------------------------
   def edit
-    @contact  = Contact.my.find(params[:id])
-    @account  = @contact.account || Account.new(:user => current_user)
+    @account = @contact.account || Account.new(:user => current_user)
     if params[:previous].to_s =~ /(\d+)\z/
-      @previous = Contact.my.find($1)
+      @previous = Contact.my.find_by_id($1) || $1.to_i
     end
-    respond_with(@contact)
 
-  rescue ActiveRecord::RecordNotFound
-    @previous ||= $1.to_i
-    respond_to_not_found(:js) unless @contact
+    respond_with(@contact)
   end
 
   # POST /contacts
   #----------------------------------------------------------------------------
   def create
-    @contact = Contact.new(params[:contact])
-
+    @comment_body = params[:comment_body]
     respond_with(@contact) do |format|
       if @contact.save_with_account_and_permissions(params)
+        @contact.add_comment_by_user(@comment_body, current_user)
         @contacts = get_contacts if called_from_index_page?
       else
         unless params[:account][:id].blank?
@@ -91,7 +89,7 @@ class ContactsController < EntitiesController
             @account = Account.new(:user => current_user)
           end
         end
-        @opportunity = Opportunity.find(params[:opportunity]) unless params[:opportunity].blank?
+        @opportunity = Opportunity.my.find(params[:opportunity]) unless params[:opportunity].blank?
       end
     end
   end
@@ -99,8 +97,6 @@ class ContactsController < EntitiesController
   # PUT /contacts/1
   #----------------------------------------------------------------------------
   def update
-    @contact = Contact.my.find(params[:id])
-
     respond_with(@contact) do |format|
       unless @contact.update_with_account_and_permissions(params)
         @users = User.except(current_user)
@@ -111,33 +107,26 @@ class ContactsController < EntitiesController
         end
       end
     end
-
-  rescue ActiveRecord::RecordNotFound
-    respond_to_not_found(:js, :json, :xml)
   end
 
   # DELETE /contacts/1
   #----------------------------------------------------------------------------
   def destroy
-    @contact = Contact.my.find(params[:id])
-    @contact.destroy if @contact
+    @contact.destroy
 
     respond_with(@contact) do |format|
       format.html { respond_to_destroy(:html) }
       format.js   { respond_to_destroy(:ajax) }
     end
-
-  rescue ActiveRecord::RecordNotFound
-    respond_to_not_found(:html, :js, :json, :xml)
   end
 
   # PUT /contacts/1/attach
   #----------------------------------------------------------------------------
-  # Handled by ApplicationController :attach
+  # Handled by EntitiesController :attach
 
   # POST /contacts/1/discard
   #----------------------------------------------------------------------------
-  # Handled by ApplicationController :discard
+  # Handled by EntitiesController :discard
 
   # POST /contacts/auto_complete/query                                     AJAX
   #----------------------------------------------------------------------------
@@ -172,18 +161,17 @@ class ContactsController < EntitiesController
       current_user.pref[:leads_naming] ||= params[:naming]
     end
 
-    @contacts = get_contacts(:page => 1) # Start one the first page.
+    @contacts = get_contacts(:page => 1) # Start on the first page.
     render :index
   end
 
   private
   #----------------------------------------------------------------------------
-  def get_contacts(options = {})
-    get_list_of_records(Contact, options)
-  end
+  alias :get_contacts :get_list_of_records
 
+  #----------------------------------------------------------------------------
   def get_accounts
-    @accounts = Account.my.order("name")
+    @accounts = Account.my.order('name')
   end
 
   #----------------------------------------------------------------------------

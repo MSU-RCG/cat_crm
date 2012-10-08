@@ -17,24 +17,66 @@
 
 class ApplicationController < ActionController::Base
 
-  helper_method :klass
-  helper_method :current_user_session, :current_user, :can_signup?
-  helper_method :called_from_index_page?, :called_from_landing_page?
-
   before_filter :set_context
   before_filter :clear_setting_cache
   before_filter "hook(:app_before_filter, self)"
   after_filter  "hook(:app_after_filter,  self)"
 
-  # See ActionController::RequestForgeryProtection for details
-  # Uncomment the :secret if you're not using the cookie session store
-  # protect_from_forgery # :secret => '165eb65bfdacf95923dad9aea10cc64a'
+  helper_method :current_user_session, :current_user, :can_signup?
+  helper_method :called_from_index_page?, :called_from_landing_page?
+  helper_method :klass
 
+  respond_to :html, :only => [ :index, :show, :auto_complete ]
+  respond_to :js
+  respond_to :json, :xml, :except => :edit
+  respond_to :atom, :csv, :rss, :xls, :only => :index
+
+  rescue_from ActiveRecord::RecordNotFound, :with => :respond_to_not_found
+  rescue_from CanCan::AccessDenied,         :with => :respond_to_access_denied
+
+  # Common auto_complete handler for all core controllers.
+  #----------------------------------------------------------------------------
+  def auto_complete
+    @query = params[:auto_complete_query] || ''
+    @auto_complete = hook(:auto_complete, self, :query => @query, :user => current_user)
+    if @auto_complete.empty?
+      exclude_ids = auto_complete_ids_to_exclude(params[:related])
+      @auto_complete = klass.my.text_search(@query).search(:id_not_in => exclude_ids).result.limit(10)
+    else
+      @auto_complete = @auto_complete.last
+    end
+
+    session[:auto_complete] = controller_name.to_sym
+    respond_to do |format|
+      format.any(:js, :html)   { render :partial => 'auto_complete' }
+      format.json { render :json => @auto_complete.inject({}){|h,a| h[a.id] = a.name; h } }
+    end
+  end
+
+private
+  
+  #
+  # Takes { :related => 'campaigns/7' } or { :related => '5' }
+  #   and returns array of object ids that should be excluded from search
+  #   assumes controller_name is an method on 'related' class that returns a collection
+  #----------------------------------------------------------------------------
+  def auto_complete_ids_to_exclude(related)
+    return [] if related.blank?
+    return [related.to_i].compact unless related.index('/')
+    related_class, id = related.split('/')
+    obj = related_class.classify.constantize.find_by_id(id)
+    if obj and obj.respond_to?(controller_name)
+      obj.send(controller_name).map(&:id)
+    else
+      []
+    end
+  end
+
+  #----------------------------------------------------------------------------
   def klass
     @klass ||= controller_name.classify.constantize
   end
 
-private
   #----------------------------------------------------------------------------
   def clear_setting_cache
     Setting.clear_cache!
@@ -43,7 +85,11 @@ private
   #----------------------------------------------------------------------------
   def set_context
     Time.zone = ActiveSupport::TimeZone[session[:timezone_offset]] if session[:timezone_offset]
-    I18n.locale = Setting.locale if Setting.locale
+    if current_user.present? and (locale = current_user.preference[:locale]).present?
+      I18n.locale = locale
+    elsif Setting.locale.present?
+      I18n.locale = Setting.locale
+    end
   end
 
   #----------------------------------------------------------------------------
@@ -95,11 +141,6 @@ private
   end
 
   #----------------------------------------------------------------------------
-  def get_users
-    @users ||= User.except(current_user)
-  end
-
-  #----------------------------------------------------------------------------
   def store_location
     session[:return_to] = request.fullpath
   end
@@ -129,83 +170,83 @@ private
     request.referer =~ %r(/#{controller}/\w+)
   end
 
-  #----------------------------------------------------------------------------
-  def respond_to_not_found(*types)
-    asset = self.controller_name.singularize
-    flick = case self.action_name
-      when "destroy" then "delete"
-      when "promote" then "convert"
-      else self.action_name
-    end
-    if self.action_name == "show"
-      # If asset does exist, but is not viewable to the current user..
-      if asset.capitalize.constantize.exists?(params[:id])
-        flash[:warning] = t(:msg_asset_not_authorized, asset)
-      else
-        flash[:warning] = t(:msg_asset_not_available, asset)
-      end
-    else
-      flash[:warning] = t(:msg_cant_do, :action => flick, :asset => asset)
-    end
-    respond_to do |format|
-      format.html { redirect_to :action => :index }                          if types.include?(:html)
-      format.js   { render(:update) { |page| page.reload } }                 if types.include?(:js)
-      format.json { render :text => flash[:warning], :status => :not_found } if types.include?(:json)
-      format.xml  { render :text => flash[:warning], :status => :not_found } if types.include?(:xml)
-    end
-  end
-
-  #----------------------------------------------------------------------------
-  def respond_to_related_not_found(related, *types)
-    asset = self.controller_name.singularize
-    asset = "note" if asset == "comment"
-    flash[:warning] = t(:msg_cant_create_related, :asset => asset, :related => related)
-    url = send("#{related.pluralize}_path")
-    respond_to do |format|
-      format.html { redirect_to url }                                        if types.include?(:html)
-      format.js   { render(:update) { |page| page.redirect_to url } }        if types.include?(:js)
-      format.json { render :text => flash[:warning], :status => :not_found } if types.include?(:json)
-      format.xml  { render :text => flash[:warning], :status => :not_found } if types.include?(:xml)
-    end
-  end
-
   # Proxy current page for any of the controllers by storing it in a session.
   #----------------------------------------------------------------------------
   def current_page=(page)
-    @current_page = session["#{controller_name}_current_page".to_sym] = page.to_i
+    p = page.to_i
+    @current_page = session[:"#{controller_name}_current_page"] = (p.zero? ? 1 : p)
   end
 
   #----------------------------------------------------------------------------
   def current_page
-    page = params[:page] || session["#{controller_name}_current_page".to_sym] || 1
+    page = params[:page] || session[:"#{controller_name}_current_page"] || 1
     @current_page = page.to_i
   end
 
   # Proxy current search query for any of the controllers by storing it in a session.
   #----------------------------------------------------------------------------
   def current_query=(query)
-    @current_query = session["#{controller_name}_current_query".to_sym] = query
+    if session[:"#{controller_name}_current_query"].to_s != query.to_s # nil.to_s == ""
+      self.current_page = params[:page] # reset paging otherwise results might be hidden, defaults to 1 if nil
+    end
+    @current_query = session[:"#{controller_name}_current_query"] = query
   end
 
   #----------------------------------------------------------------------------
   def current_query
-    @current_query = params[:query] || session["#{controller_name}_current_query".to_sym] || ""
+    @current_query = params[:query] || session[:"#{controller_name}_current_query"] || ''
   end
 
-  # Somewhat simplistic parser that extracts query and hash-prefixed tags from
-  # the search string and returns them as two element array, for example:
-  #
-  # "#real Billy Bones #pirate" => [ "Billy Bones", "real, pirate" ]
   #----------------------------------------------------------------------------
-  def parse_query_and_tags(search_string)
-    query, tags = [], []
-    search_string.scan(/[\w@\-\.#]+/).each do |token|
-      if token.starts_with?("#")
-        tags << token[1 .. -1]
-      else
-        query << token
-      end
+  def asset
+    self.controller_name.singularize
+  end
+
+  #----------------------------------------------------------------------------
+  def respond_to_not_found(*types)
+    flash[:warning] = t(:msg_asset_not_available, asset)
+
+    respond_to do |format|
+      format.html { redirect_to :action => :index }
+      format.js   { render(:update) { |page| page.reload } }
+      format.json { render :text => flash[:warning], :status => :not_found }
+      format.xml  { render :text => flash[:warning], :status => :not_found }
     end
-    [ query.join(" "), tags.join(", ") ]
+  end
+
+  #----------------------------------------------------------------------------
+  def respond_to_related_not_found(related, *types)
+    asset = "note" if asset == "comment"
+    flash[:warning] = t(:msg_cant_create_related, :asset => asset, :related => related)
+
+    url = send("#{related.pluralize}_path")
+    respond_to do |format|
+      format.html { redirect_to url }
+      format.js   { render(:update) { |page| page.redirect_to url } }
+      format.json { render :text => flash[:warning], :status => :not_found }
+      format.xml  { render :text => flash[:warning], :status => :not_found }
+    end
+  end
+
+  #----------------------------------------------------------------------------
+  def respond_to_access_denied
+    if self.action_name == "show"
+      flash[:warning] = t(:msg_asset_not_authorized, asset)
+
+    else
+      flick = case self.action_name
+        when "destroy" then "delete"
+        when "promote" then "convert"
+        else self.action_name
+      end
+      flash[:warning] = t(:msg_cant_do, :action => flick, :asset => asset)
+    end
+
+    respond_to do |format|
+      format.html { redirect_to :action => :index }
+      format.js   { render(:update) { |page| page.reload } }
+      format.json { render :text => flash[:warning], :status => :unauthorized }
+      format.xml  { render :text => flash[:warning], :status => :unauthorized }
+    end
   end
 end

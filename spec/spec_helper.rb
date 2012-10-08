@@ -18,11 +18,10 @@ Spork.prefork do
   require 'rspec/autorun'
   require 'fuubar'
 
+  require 'acts_as_fu'
   # Load factories
   require 'factory_girl'
   require 'ffaker'
-
-  Dir[Rails.root.join("spec/factories/**/*.rb")].each{ |f| require File.expand_path(f) }
 
   # Requires supporting ruby files with custom matchers and macros, etc,
   # in spec/support/ and its subdirectories.
@@ -56,10 +55,11 @@ Spork.prefork do
 
     config.before(:each) do
       PaperTrail.enabled = false
-    end
 
-    config.before(:each, :type => :view) do
+      # Overwrite locale settings within "config/settings.yml" if necessary.
+      # In order to ensure that test still pass if "Setting.locale" is not set to "en-US".
       I18n.locale = 'en-US'
+      Setting.locale = 'en-US' unless Setting.locale == 'en-US'
     end
 
     config.after(:each, :type => :view) do
@@ -71,7 +71,24 @@ Spork.prefork do
     # If you're not using ActiveRecord, or you'd prefer not to run each of your
     # examples within a transaction, remove the following line or assign false
     # instead of true.
-    config.use_transactional_fixtures = true
+    config.use_transactional_fixtures = false
+    config.before :suite do
+      DatabaseCleaner.strategy = :transaction
+      DatabaseCleaner.clean_with(:truncation)
+    end
+    config.before :all, :type => :request do
+      DatabaseCleaner.clean_with(:truncation)
+    end
+    config.around :each, :type => :request do |example|
+      DatabaseCleaner.strategy = :truncation
+      example.run
+      DatabaseCleaner.strategy = :transaction
+    end
+    config.around :each do |example|
+      DatabaseCleaner.start
+      example.run
+      DatabaseCleaner.clean
+    end
 
     # Fuubar formatter doesn't work too well on Travis
     config.formatter = ENV["TRAVIS"] ? :progress : "Fuubar"

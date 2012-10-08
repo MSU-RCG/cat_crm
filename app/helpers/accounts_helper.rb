@@ -20,7 +20,7 @@ module AccountsHelper
   # Sidebar checkbox control for filtering accounts by category.
   #----------------------------------------------------------------------------
   def account_category_checbox(category, count)
-    checked = (session[:filter_by_account_category] ? session[:filter_by_account_category].split(",").include?(category.to_s) : count.to_i > 0)
+    checked = (session[:accounts_filter] ? session[:accounts_filter].split(",").include?(category.to_s) : count.to_i > 0)
     onclick = remote_function(
       :url      => { :action => :filter },
       :with     => h(%Q/"category=" + $$("input[name='category[]']").findAll(function (el) { return el.checked }).pluck("value")/),
@@ -42,13 +42,36 @@ module AccountsHelper
   end
   
   def account_select(options = {})
-    # Generates a select list with the first 25 accounts,
-    # and prepends the currently selected account, if available
-    options[:selected] = (@account && @account.id) || 0
-    accounts = ([@account] + Account.order("name").my.limit(25)).compact.uniq
-    collection_select :account, :id, accounts, :id, :name, options,
-                      {:"data-placeholder" => t(:select_an_account),
-                       :style => "width:330px; display:none;" }
+      # Generates a select list with the first 25 accounts,
+      # and prepends the currently selected account, if available
+      options[:selected] = (@account && @account.id) || 0
+      accounts = ([@account] + Account.my.order(:name).limit(25)).compact.uniq
+      collection_select :account, :id, accounts, :id, :name, options,
+                        {:"data-placeholder" => t(:select_an_account),
+                         :style => "width:330px; display:none;" }
+  end
+  
+  # Select an existing account or create a new one.
+  #----------------------------------------------------------------------------
+  def account_select_or_create(form, &block)
+    options = {}
+    yield options if block_given?
+    
+    content_tag(:div, :class => 'label') do
+      t(:account).html_safe +
+    
+      content_tag(:span, :id => 'account_create_title') do
+        "(#{t :create_new} #{t :or} <a href='#' onclick='crm.select_account(1); return false;'>#{t :select_existing}</a>):".html_safe
+      end.html_safe +
+    
+      content_tag(:span, :id => 'account_select_title') do
+        "(<a href='#' onclick='crm.create_account(1); return false;'>#{t :create_new}</a> #{t :or} #{t :select_existing}):".html_safe
+      end.html_safe +
+    
+      content_tag(:span, ':', :id => 'account_disabled_title').html_safe
+    end.html_safe +
+    
+    account_select(options).html_safe +
+    form.text_field(:name, :style => 'width:324px; display:none;')
   end
 end
-

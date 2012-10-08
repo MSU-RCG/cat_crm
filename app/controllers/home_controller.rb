@@ -26,26 +26,20 @@ class HomeController < ApplicationController
     hook(:home_controller, self, :params => "it works!")
 
     @activities = get_activities
-    respond_to do |format|
-      format.html # index.html.haml
-      format.js   # index.js.rjs
-      format.json { render :json => @activities }
-      format.xml  { render :xml => @activities }
-      format.xls  { send_data @activities.to_xls, :type => :xls }
-      format.csv  { send_data @activities.to_csv, :type => :csv }
-      format.rss  { render "index.rss.builder" }
-      format.atom { render "index.atom.builder" }
-    end
+    @my_tasks = Task.visible_on_dashboard(current_user).by_due_at
+    @my_opportunities = Opportunity.visible_on_dashboard(current_user).by_closes_on
+    @my_accounts = Account.visible_on_dashboard(current_user).by_name
+    respond_with(@activities)
   end
 
   # GET /home/options                                                      AJAX
   #----------------------------------------------------------------------------
   def options
     unless params[:cancel].true?
-      @asset = @current_user.pref[:activity_asset] || "all"
-      @action = @current_user.pref[:activity_event] || "all_events"
-      @user = @current_user.pref[:activity_user] || "all_users"
-      @duration = @current_user.pref[:activity_duration] || "two_days"
+      @asset = current_user.pref[:activity_asset] || "all"
+      @action = current_user.pref[:activity_event] || "all_events"
+      @user = current_user.pref[:activity_user] || "all_users"
+      @duration = current_user.pref[:activity_duration] || "two_days"
       @all_users = User.order("first_name, last_name")
     end
   end
@@ -53,10 +47,10 @@ class HomeController < ApplicationController
   # POST /home/redraw                                                      AJAX
   #----------------------------------------------------------------------------
   def redraw
-    @current_user.pref[:activity_asset] = params[:asset] if params[:asset]
-    @current_user.pref[:activity_event] = params[:event] if params[:event]
-    @current_user.pref[:activity_user] = params[:user] if params[:user]
-    @current_user.pref[:activity_duration] = params[:duration] if params[:duration]
+    current_user.pref[:activity_asset] = params[:asset] if params[:asset]
+    current_user.pref[:activity_event] = params[:event] if params[:event]
+    current_user.pref[:activity_user] = params[:user] if params[:user]
+    current_user.pref[:activity_duration] = params[:duration] if params[:duration]
 
     @activities = get_activities
     render :index
@@ -111,12 +105,12 @@ class HomeController < ApplicationController
     options[:user]     ||= activity_user
     options[:duration] ||= activity_duration
 
-    Version.latest(options).visible_to(@current_user)
+    Version.latest(options).visible_to(current_user)
   end
 
   #----------------------------------------------------------------------------
   def activity_asset
-    asset = @current_user.pref[:activity_asset]
+    asset = current_user.pref[:activity_asset]
     if asset.nil? || asset == "all"
       nil
     else
@@ -126,7 +120,7 @@ class HomeController < ApplicationController
 
   #----------------------------------------------------------------------------
   def activity_event
-    event = @current_user.pref[:activity_event]
+    event = current_user.pref[:activity_event]
     if event == "all_events"
       %w(create update destroy)
     else
@@ -136,28 +130,27 @@ class HomeController < ApplicationController
 
   #----------------------------------------------------------------------------
   def activity_user
-    user = @current_user.pref[:activity_user]
-    if user && user != "all users"
-      user = if user =~ /\s/  # first_name middle_name last_name any_name
-        name_query = if user.include?(" ")
-          user.name_permutations.map{ |first, last|
-            "(upper(first_name) LIKE upper('%#{first}%') AND upper(last_name) LIKE upper('%#{last}%'))"
-          }.join(" OR ")
-        else
-          "upper(first_name) LIKE upper('%#{user}%') OR upper(last_name) LIKE upper('%#{user}%')"
+    user = current_user.pref[:activity_user]
+    if user && user != "all_users"
+      user = if user =~ /@/ # email
+          User.where(:email => user).first
+        else # first_name middle_name last_name any_name
+          name_query = if user.include?(" ")
+            user.name_permutations.map{ |first, last|
+              "(upper(first_name) LIKE upper('%#{first}%') AND upper(last_name) LIKE upper('%#{last}%'))"
+            }.join(" OR ")
+          else
+            "upper(first_name) LIKE upper('%#{user}%') OR upper(last_name) LIKE upper('%#{user}%')"
+          end
+          User.where(name_query).first
         end
-
-        User.where(name_query).first
-      elsif user =~ /@/ # email
-        User.where(:email => user).first
-      end
     end
     user.is_a?(User) ? user.id : nil
   end
 
   #----------------------------------------------------------------------------
   def activity_duration
-    duration = @current_user.pref[:activity_duration]
+    duration = current_user.pref[:activity_duration]
     if duration
       words = duration.split("_") # "two_weeks" => 2.weeks
       if %w(one two).include?(words.first)
@@ -167,4 +160,3 @@ class HomeController < ApplicationController
   end
 
 end
-

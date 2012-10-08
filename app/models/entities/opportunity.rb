@@ -48,6 +48,8 @@ class Opportunity < ActiveRecord::Base
   has_many    :tasks, :as => :asset, :dependent => :destroy#, :order => 'created_at DESC'
   has_many    :emails, :as => :mediator
 
+  serialize :subscribed_users, Set
+
   scope :state, lambda { |filters|
     where('stage IN (?)' + (filters.delete('other') ? ' OR stage IS NULL' : ''), filters)
   }
@@ -55,23 +57,32 @@ class Opportunity < ActiveRecord::Base
   scope :assigned_to, lambda { |user| where('assigned_to = ?', user.id) }
   scope :won,      where("opportunities.stage = 'won'")
   scope :lost,     where("opportunities.stage = 'lost'")
+  scope :not_lost, where("opportunities.stage <> 'lost'")
   scope :pipeline, where("opportunities.stage IS NULL OR (opportunities.stage != 'won' AND opportunities.stage != 'lost')")
 
   # Search by name OR id
   scope :text_search, lambda { |query|
-    query = query.gsub(/[^\w\s\-\.'\p{L}]/u, '').strip
     # postgresql does not like to compare string to integer field
     if query =~ /^\d+$/
+      query = query.gsub(/[^\w\s\-\.'\p{L}]/u, '').strip
       where('upper(name) LIKE upper(:name) OR opportunities.id = :id', :name => "%#{query}%", :id => query)
     else
-      where('upper(name) LIKE upper(:name)', :name => "%#{query}%")
+      search('name_cont' => query).result
     end
   }
 
+  scope :visible_on_dashboard, lambda { |user|
+    # Show opportunities which either belong to the user and are unassigned, or are assigned to the user and haven't been closed (won/lost)
+    where('(user_id = :user_id AND assigned_to IS NULL) OR assigned_to = :user_id', :user_id => user.id).where("opportunities.stage != 'won'").where("opportunities.stage != 'lost'")
+  }
+
+  scope :by_closes_on, order(:closes_on)
+
   uses_user_permissions
   acts_as_commentable
+  uses_comment_extensions
   acts_as_taggable_on :tags
-  has_paper_trail
+  has_paper_trail :ignore => [ :subscribed_users ]
   has_fields
   exportable
   sortable :by => [ "name ASC", "amount DESC", "amount*probability DESC", "probability DESC", "closes_on ASC", "created_at DESC", "updated_at DESC" ], :default => "created_at DESC"
@@ -103,12 +114,12 @@ class Opportunity < ActiveRecord::Base
   def save_with_account_and_permissions(params)
     # Quick sanitization, makes sure Account will not search for blank id.
     params[:account].delete(:id) if params[:account][:id].blank?
-    account = Account.create_or_select_for(self, params[:account], params[:users])
+    account = Account.create_or_select_for(self, params[:account])
     self.account_opportunity = AccountOpportunity.new(:account => account, :opportunity => self) unless account.id.blank?
     self.account = account
     self.contacts << Contact.find(params[:contact]) unless params[:contact].blank?
     self.campaign = Campaign.find(params[:campaign]) unless params[:campaign].blank?
-    self.save_with_permissions(params[:users])
+    self.save
   end
 
   # Backend handler for [Update Opportunity] form (see opportunity/update).
@@ -117,13 +128,14 @@ class Opportunity < ActiveRecord::Base
     if params[:account] && (params[:account][:id] == "" || params[:account][:name] == "")
       self.account = nil # Opportunity is not associated with the account anymore.
     elsif params[:account]
-      account = Account.create_or_select_for(self, params[:account], params[:users])
+      account = Account.create_or_select_for(self, params[:account])
       if self.account != account and account.id.present?
         self.account_opportunity = AccountOpportunity.new(:account => account, :opportunity => self)
       end
     end
     self.reload
-    self.update_with_permissions(params[:opportunity], params[:users])
+    self.attributes = params[:opportunity]
+    self.save
   end
 
   # Attach given attachment to the opportunity if it hasn't been attached already.
@@ -146,7 +158,7 @@ class Opportunity < ActiveRecord::Base
 
   # Class methods.
   #----------------------------------------------------------------------------
-  def self.create_for(model, account, params, users)
+  def self.create_for(model, account, params)
     opportunity = Opportunity.new(params)
 
     # Save the opportunity if its name was specified and account has no errors.
@@ -154,7 +166,7 @@ class Opportunity < ActiveRecord::Base
       # Note: opportunity.account = account doesn't seem to work here.
       opportunity.account_opportunity = AccountOpportunity.new(:account => account, :opportunity => opportunity) unless account.id.blank?
       if opportunity.access != "Lead" || model.nil?
-        opportunity.save_with_permissions(users)
+        opportunity.save
       else
         opportunity.save_with_model_permissions(model)
       end
@@ -184,4 +196,3 @@ class Opportunity < ActiveRecord::Base
   end
 
 end
-

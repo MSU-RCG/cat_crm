@@ -21,11 +21,11 @@ class UsersController < ApplicationController
   before_filter :require_user, :only => [ :show, :redraw ]
   before_filter :set_current_tab, :only => [ :show ] # Don't hightlight any tabs.
   before_filter :require_and_assign_user, :except => [ :new, :create, :show, :avatar, :upload_avatar ]
-  before_filter :assign_given_or_current_user, :only => [ :show, :avatar, :upload_avatar ]
+  before_filter :assign_given_or_current_user, :only => [ :show, :avatar, :upload_avatar, :edit, :update ]
+
+  load_resource
 
   respond_to :html, :only => [ :show, :new ]
-  respond_to :js
-  respond_to :json, :xml, :except => :edit
 
   # GET /users/1
   # GET /users/1.json
@@ -41,7 +41,6 @@ class UsersController < ApplicationController
   #----------------------------------------------------------------------------
   def new
     if can_signup?
-      @user = User.new
       respond_with(@user)
     else
       redirect_to login_path
@@ -58,7 +57,6 @@ class UsersController < ApplicationController
   # POST /users.xml                                                        HTML
   #----------------------------------------------------------------------------
   def create
-    @user = User.new(params[:user])
     if @user.save
       if Setting.user_signup == :needs_approval
         flash[:notice] = t(:msg_account_created)
@@ -140,24 +138,26 @@ class UsersController < ApplicationController
     else
       @user.errors.add(:current_password, t(:msg_invalid_password))
     end
+
     respond_with(@user)
   end
 
   # POST /users/1/redraw                                                   AJAX
   #----------------------------------------------------------------------------
   def redraw
-    @current_user.preference[:locale] = params[:locale]
-    render(:update) { |page| page.redirect_to user_path(@current_user) }
+    current_user.preference[:locale] = params[:locale]
+    render(:update) { |page| page.redirect_to user_path(current_user) }
   end
 
-  private
+private
+
   #----------------------------------------------------------------------------
   def require_and_assign_user
     require_user
-    @user = @current_user
+    @user = current_user
   end
 
   def assign_given_or_current_user
-    @user = params[:id] ? User.find(params[:id]) : @current_user
+    @user = params[:id] ? User.find(params[:id]) : current_user
   end
 end

@@ -16,10 +16,9 @@
 #------------------------------------------------------------------------------
 
 class Admin::FieldsController < Admin::ApplicationController
-  before_filter :require_user
-  before_filter :set_current_tab, :only => [ :index, :show ]
   before_filter "set_current_tab('admin/fields')", :only => [ :index ]
-  before_filter :auto_complete, :only => :auto_complete
+
+  load_resource :except => :create
 
   # GET /fields
   # GET /fields.xml                                                      HTML
@@ -31,15 +30,7 @@ class Admin::FieldsController < Admin::ApplicationController
   # GET /fields/1.xml                                                    HTML
   #----------------------------------------------------------------------------
   def show
-    @custom_field = Field.find(params[:id])
-
-    respond_to do |format|
-      format.html # show.html.erb
-      format.xml  { render :xml => @custom_field }
-    end
-
-  rescue ActiveRecord::RecordNotFound
-    respond_to_not_found(:html, :xml)
+    respond_with(@field)
   end
 
   # GET /fields/new
@@ -48,13 +39,7 @@ class Admin::FieldsController < Admin::ApplicationController
   def new
     @field = CustomField.new(:field_group_id => params[:field_group_id])
 
-    respond_to do |format|
-      format.js   # new.js.rjs
-      format.xml  { render :xml => @field }
-    end
-
-  rescue ActiveRecord::RecordNotFound # Kicks in if related asset was not found.
-    respond_to_not_found(:html, :xml)
+    respond_with(@custom_field)
   end
 
   # GET /fields/1/edit                                                   AJAX
@@ -63,49 +48,37 @@ class Admin::FieldsController < Admin::ApplicationController
     @field = Field.find(params[:id])
 
     if params[:previous].to_s =~ /(\d+)\z/
-      @previous = Field.find($1)
+      @previous = Field.find_by_id($1) || $1.to_i
     end
 
-  rescue ActiveRecord::RecordNotFound
-    @previous ||= $1.to_i
-    respond_to_not_found(:js)
+    respond_with(@field)
   end
 
   # POST /fields
   # POST /fields.xml                                                     AJAX
   #----------------------------------------------------------------------------
   def create
-    @field = CustomField.new(params[:field])
-
-    respond_to do |format|
-      if @field.save
-        format.js   # create.js.rjs
-        format.xml  { render :xml => @field, :status => :created, :location => @field }
-      else
-        format.js   # create.js.rjs
-        format.xml  { render :xml => @field.errors, :status => :unprocessable_entity }
-      end
+    if (params[:field][:as] =~ /pair/)
+      @field = CustomFieldPair.create_pair(params).first
+    else
+      @field = CustomField.create(params[:field])
     end
+    
+    respond_with(@field)
   end
 
   # PUT /fields/1
   # PUT /fields/1.xml                                                    AJAX
   #----------------------------------------------------------------------------
   def update
-    @field = Field.find(params[:id])
-
-    respond_to do |format|
-      if @field.update_attributes(params[:field])
-        format.js
-        format.xml  { head :ok }
-      else
-        format.js
-        format.xml  { render :xml => @field.errors, :status => :unprocessable_entity }
-      end
+    if (params[:field][:as] =~ /pair/)
+      @field = CustomFieldPair.update_pair(params).first
+    else
+      @field = Field.find(params[:id])
+      @field.update_attributes(params[:field])
     end
 
-  rescue ActiveRecord::RecordNotFound
-    respond_to_not_found(:js, :xml)
+    respond_with(@field)
   end
 
   # DELETE /fields/1
@@ -113,19 +86,9 @@ class Admin::FieldsController < Admin::ApplicationController
   #----------------------------------------------------------------------------
   def destroy
     @field = CustomField.find(params[:id])
+    @field.destroy
 
-    respond_to do |format|
-      if @field.destroy
-        format.js   # destroy.js.rjs
-        format.xml  { head :ok }
-      else
-        format.js   # destroy.js.rjs
-        format.xml  { render :xml => @field.errors, :status => :unprocessable_entity }
-      end
-    end
-
-  rescue ActiveRecord::RecordNotFound
-    respond_to_not_found(:html, :js, :xml)
+    respond_with(@field)
   end
 
   # POST /fields/sort
@@ -144,5 +107,5 @@ class Admin::FieldsController < Admin::ApplicationController
   # POST /fields/auto_complete/query                                     AJAX
   #----------------------------------------------------------------------------
   # Handled by before_filter :auto_complete, :only => :auto_complete
+  
 end
-

@@ -1,44 +1,42 @@
-# Fat Free CRM
+# Fat Free CRM [![TravisCI][travis-img-url]][travis-ci-url]
 
-[![TravisCI][travis-img]][travis-ci] [![Dependency Status][gemnasium-img]][gemnasium]
-
-[travis-img]: https://secure.travis-ci.org/fatfreecrm/fat_free_crm.png?branch=master
-[travis-ci]: http://travis-ci.org/fatfreecrm/fat_free_crm
-[gemnasium-img]: https://gemnasium.com/fatfreecrm/fat_free_crm.png?travis
-[gemnasium]: https://gemnasium.com/fatfreecrm/fat_free_crm
+[travis-img-url]: https://secure.travis-ci.org/fatfreecrm/fat_free_crm.png?branch=master
+[travis-ci-url]: http://travis-ci.org/fatfreecrm/fat_free_crm
 
 ### An open source, Ruby on Rails [customer relationship management][crm-wiki] platform (CRM).
 
 [crm-wiki]: http://en.wikipedia.org/wiki/Customer_relationship_management
 
-Out of the box it features group collaboration, campaign and lead management, contact lists, and opportunity tracking.
+
+Out of the box it features group collaboration, campaign and lead management,
+contact lists, and opportunity tracking.
 
 <table>
   <tr>
     <td align="center">
-      <a href="http://fatfreecrm.com/images/contact_create.png" target="_blank" title="Create Contacts">
-        <img src="http://fatfreecrm.com/images/contact_create_t.png" alt="Create Contacts">
+      <a href="https://github.com/fatfreecrm/fatfreecrm.github.com/raw/master/backup/images/contact_create.png" target="_blank" title="Create Contacts">
+        <img src="https://github.com/fatfreecrm/fatfreecrm.github.com/raw/master/backup/images/contact_create_t.png" alt="Create Contacts">
       </a>
       <br />
       <em>Contacts</em>
     </td>
     <td align="center">
-      <a href="http://fatfreecrm.com/images/contact_opportunity.png" target="_blank" title="Manage Opportunities">
-        <img src="http://fatfreecrm.com/images/contact_opportunity_t.png" alt="Manage Opportunities">
+      <a href="https://github.com/fatfreecrm/fatfreecrm.github.com/raw/master/backup/images/contact_opportunity.png" target="_blank" title="Manage Opportunities">
+        <img src="https://github.com/fatfreecrm/fatfreecrm.github.com/raw/master/backup/images/contact_opportunity_t.png" alt="Manage Opportunities">
       </a>
       <br />
       <em>Opportunities</em>
     </td>
     <td align="center">
-      <a href="http://fatfreecrm.com/images/account_edit.png" target="_blank" title="Edit Accounts">
-        <img src="http://fatfreecrm.com/images/account_edit_t.png" alt="Edit Accounts">
+      <a href="https://github.com/fatfreecrm/fatfreecrm.github.com/raw/master/backup/images/account_edit.png" target="_blank" title="Edit Accounts">
+        <img src="https://github.com/fatfreecrm/fatfreecrm.github.com/raw/master/backup/images/account_edit_t.png" alt="Edit Accounts">
       </a>
       <br />
       <em>Accounts</em>
     </td>
     <td align="center">
-      <a href="http://fatfreecrm.com/images/task_create.png" target="_blank" title="Create Tasks">
-        <img src="http://fatfreecrm.com/images/task_create_t.png" alt="Create Tasks">
+      <a href="https://github.com/fatfreecrm/fatfreecrm.github.com/raw/master/backup/images/task_create.png" target="_blank" title="Create Tasks">
+        <img src="https://github.com/fatfreecrm/fatfreecrm.github.com/raw/master/backup/images/task_create_t.png" alt="Create Tasks">
       </a>
       <br />
       <em>Tasks</em>

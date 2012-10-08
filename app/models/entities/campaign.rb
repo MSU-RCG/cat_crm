@@ -49,21 +49,21 @@ class Campaign < ActiveRecord::Base
   has_many    :opportunities, :dependent => :destroy, :order => "id DESC"
   has_many    :emails, :as => :mediator
 
+  serialize :subscribed_users, Set
+
   scope :state, lambda { |filters|
     where('status IN (?)' + (filters.delete('other') ? ' OR status IS NULL' : ''), filters)
   }
   scope :created_by, lambda { |user| where('user_id = ?' , user.id) }
   scope :assigned_to, lambda { |user| where('assigned_to = ?', user.id) }
 
-  scope :text_search, lambda { |query|
-    query = query.gsub(/[^\w\s\-\.'\p{L}]/u, '').strip
-    where('upper(name) LIKE upper(?)', "%#{query}%")
-  }
+  scope :text_search, lambda { |query| search('name_cont' => query).result }
 
   uses_user_permissions
   acts_as_commentable
+  uses_comment_extensions
   acts_as_taggable_on :tags
-  has_paper_trail
+  has_paper_trail :ignore => [ :subscribed_users ]
   has_fields
   exportable
   sortable :by => [ "name ASC", "target_leads DESC", "target_revenue DESC", "leads_count DESC", "revenue DESC", "starts_on DESC", "ends_on DESC", "created_at DESC", "updated_at DESC" ], :default => "created_at DESC"
@@ -119,4 +119,3 @@ class Campaign < ActiveRecord::Base
   end
 
 end
-

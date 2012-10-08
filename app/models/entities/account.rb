@@ -49,6 +49,8 @@ class Account < ActiveRecord::Base
   has_one     :shipping_address, :dependent => :destroy, :as => :addressable, :class_name => "Address", :conditions => "address_type = 'Shipping'"
   has_many    :emails, :as => :mediator
 
+  serialize :subscribed_users, Set
+
   accepts_nested_attributes_for :billing_address, :allow_destroy => true
   accepts_nested_attributes_for :shipping_address, :allow_destroy => true
 
@@ -58,15 +60,20 @@ class Account < ActiveRecord::Base
   scope :created_by, lambda { |user| where(:user_id => user.id) }
   scope :assigned_to, lambda { |user| where(:assigned_to => user.id) }
 
-  scope :text_search, lambda { |query|
-    query = query.gsub(/[^\w\s\-\.'\p{L}]/u, '').strip
-    where('upper(name) LIKE upper(:m) OR upper(email) LIKE upper(:m)', :m => "%#{query}%")
+  scope :text_search, lambda { |query| search('name_or_email_cont' => query).result }
+
+  scope :visible_on_dashboard, lambda { |user|
+    # Show accounts which either belong to the user and are unassigned, or are assigned to the user
+    where('(user_id = :user_id AND assigned_to IS NULL) OR assigned_to = :user_id', :user_id => user.id)
   }
+
+  scope :by_name, order(:name)
 
   uses_user_permissions
   acts_as_commentable
+  uses_comment_extensions
   acts_as_taggable_on :tags
-  has_paper_trail
+  has_paper_trail :ignore => [ :subscribed_users ]
   has_fields
   exportable
   sortable :by => [ "name ASC", "rating DESC", "created_at DESC", "updated_at DESC" ], :default => "created_at DESC"
@@ -93,6 +100,7 @@ class Account < ActiveRecord::Base
   #----------------------------------------------------------------------------
   def attach!(attachment)
     unless self.send("#{attachment.class.name.downcase}_ids").include?(attachment.id)
+      attachment.notify_account_change(:from => nil, :to => self) if attachment.class == Contact
       self.send(attachment.class.name.tableize) << attachment
     end
   end
@@ -103,19 +111,20 @@ class Account < ActiveRecord::Base
     if attachment.is_a?(Task)
       attachment.update_attribute(:asset, nil)
     else # Contacts, Opportunities
+      attachment.notify_account_change(:from => self, :to => nil) if attachment.class == Contact
       self.send(attachment.class.name.tableize).delete(attachment)
     end
   end
 
   # Class methods.
   #----------------------------------------------------------------------------
-  def self.create_or_select_for(model, params, users)
+  def self.create_or_select_for(model, params)
     if params[:id].present?
       account = Account.find(params[:id])
     else
       account = Account.new(params)
       if account.access != "Lead" || model.nil?
-        account.save_with_permissions(users)
+        account.save
       else
         account.save_with_model_permissions(model)
       end
@@ -134,4 +143,3 @@ class Account < ActiveRecord::Base
     self.category = nil if self.category.blank?
   end
 end
-

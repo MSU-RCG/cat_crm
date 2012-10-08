@@ -38,7 +38,8 @@ module ApplicationHelper
   def show_flash(options = { :sticky => false })
     [:error, :warning, :info, :notice].each do |type|
       if flash[type]
-        html = content_tag(:p, h(flash[type]), :id => "flash")
+        html = content_tag(:div, h(flash[type]), :id => "flash")
+        flash[type] = nil
         return html << content_tag(:script, "crm.flash('#{type}', #{options[:sticky]})", :type => "text/javascript")
       end
     end
@@ -109,37 +110,41 @@ module ApplicationHelper
   end
 
   #----------------------------------------------------------------------------
-  def link_to_edit(model, params = {})
-    name = (params[:klass_name] || model.class.name).underscore.downcase
+  def link_to_edit(record, options = {})
+    object = record.is_a?(Array) ? record.last : record
+
+    name = (params[:klass_name] || object.class.name).underscore.downcase
     link_to(t(:edit),
-      params[:url] || send(:"edit_#{name}_path", model),
+      options[:url] || polymorphic_url(record, :action => :edit),
       :remote  => true,
       :onclick => "this.href = this.href.split('?')[0] + '?previous='+crm.find_form('edit_#{name}');"
     )
   end
 
   #----------------------------------------------------------------------------
-  def link_to_delete(model, params = {})
-    name = (params[:klass_name] || model.class.name).underscore.downcase
+  def link_to_delete(record, options = {})
+    object = record.is_a?(Array) ? record.last : record
+    confirm = options[:confirm] || nil
+    
     link_to(t(:delete) + "!",
-      params[:url] || url_for(model),
+      options[:url] || url_for(record),
       :method => :delete,
       :remote => true,
-      :onclick => visual_effect(:highlight, dom_id(model), :startcolor => "#ffe4e1")
+      :onclick => visual_effect(:highlight, dom_id(object), :startcolor => "#ffe4e1"),
+      :confirm => confirm
     )
   end
 
   #----------------------------------------------------------------------------
-  def link_to_discard(model)
-    name = model.class.name.downcase
+  def link_to_discard(object)
     current_url = (request.xhr? ? request.referer : request.fullpath)
     parent, parent_id = current_url.scan(%r|/(\w+)/(\d+)|).flatten
 
     link_to(t(:discard),
-      url_for(:controller => parent, :action => :discard, :id => parent_id, :attachment => model.class.name, :attachment_id => model.id),
+      url_for(:controller => parent, :action => :discard, :id => parent_id, :attachment => object.class.name, :attachment_id => object.id),
       :method  => :post,
       :remote  => true,
-      :onclick => visual_effect(:highlight, dom_id(model), :startcolor => "#ffe4e1")
+      :onclick => visual_effect(:highlight, dom_id(object), :startcolor => "#ffe4e1")
     )
   end
 
@@ -245,7 +250,11 @@ module ApplicationHelper
     [ :blog, :linkedin, :facebook, :twitter, :skype ].map do |site|
       url = person.send(site)
       unless url.blank?
-        url = "http://" << url unless url.match(/^https?:\/\//)
+        if site == :skype then
+          url = "callto:" << url
+        else
+          url = "http://" << url unless url.match(/^https?:\/\//)
+        end
         link_to(image_tag("#{site}.gif", :size => "15x15"), url, :"data-popup" => true, :title => t(:open_in_window, url))
       end
     end.compact.join("\n").html_safe
@@ -290,15 +299,6 @@ module ApplicationHelper
     end
   end
 
-  #----------------------------------------------------------------------------
-  def localize_calendar_date_select
-    update_page_tag do |page|
-      page.assign '_translations', { 'OK' => t('calendar_date_select.ok'), 'Now' => t('calendar_date_select.now'), 'Today' => t('calendar_date_select.today'), 'Clear' => t('calendar_date_select.clear') }
-      page.assign 'Date.weekdays', t('date.abbr_day_names')
-      page.assign 'Date.months', t('date.month_names')[1..-1]
-    end
-  end
-
   # Users can upload their avatar, and if it's missing we're going to use
   # gravatar. For leads and contacts we always use gravatars.
   #----------------------------------------------------------------------------
@@ -317,8 +317,7 @@ module ApplicationHelper
       if args[:width] && args[:height]
         args[:size] = [:width, :height].map{|d|args[d]}.join("x")
       end
-
-      gravatar_image_tag(model.email, { :gravatar => { :default => default_avatar_url } }.merge(args))
+      gravatar_for(model, args)
     else
       image_tag("avatar.jpg", args)
     end
@@ -333,7 +332,12 @@ module ApplicationHelper
 
   #----------------------------------------------------------------------------
   def default_avatar_url
-    "#{request.protocol + request.host_with_port}" + Setting.base_url.to_s + "/assets/avatar.jpg"
+    url = image_path('avatar.jpg')
+    if ActionController::Base.config.asset_host.present?
+      url
+    else
+      request.protocol + request.host_with_port + url
+    end
   end
 
   # Returns default permissions intro.
@@ -380,25 +384,27 @@ module ApplicationHelper
 
   # Helper to display links to supported data export formats.
   #----------------------------------------------------------------------------
-  def links_to_export
-    token = @current_user.single_access_token
-    path = if controller.controller_name == 'home'
-      activities_path
-    elsif controller.class.to_s.starts_with?("Admin::")
-      send("admin_#{controller.controller_name}_path")
-    else
-      send("#{controller.controller_name}_path")
-    end
+  def links_to_export(action=:index)
+    token = current_user.single_access_token
+    url_params = {:action => action}
+    url_params.merge!(:id => params[:id]) unless params[:id].blank?
+    url_params.merge!(:query => params[:query]) unless params[:query].blank?
+    url_params.merge!(:q => params[:q]) unless params[:q].blank?
+    url_params.merge!(:view => @view) unless @view.blank? # tasks
 
     exports = %w(xls csv).map do |format|
-      link_to(format.upcase, "#{path}.#{format}", :title => I18n.t(:"to_#{format}"))
+      link_to(format.upcase, url_params.merge(:format => format), :title => I18n.t(:"to_#{format}")) unless action.to_s == "show"
     end
 
     feeds = %w(rss atom).map do |format|
-      link_to(format.upcase, "#{path}.#{format}?authentication_credentials=#{token}", :title => I18n.t(:"to_#{format}"))
+      link_to(format.upcase, url_params.merge(:format => format, :authentication_credentials => token), :title => I18n.t(:"to_#{format}"))
     end
 
-    (exports + feeds).join(' | ')
+    links = %W(perm).map do |format|
+      link_to(format.upcase, url_params, :title => I18n.t(:"to_#{format}"))
+    end
+
+    (exports + feeds + links).compact.join(' | ')
   end
 
   def template_fields(f, type)
@@ -418,5 +424,12 @@ module ApplicationHelper
   def link_to_remove_fields(name, f)
     link_to image_tag('delete.png', :size => '16x16', :alt => name), nil, :class => "remove_fields"
   end
-end
 
+  def user_options
+    User.all.map {|u| [u.full_name, u.id]}
+  end
+
+  def group_options
+    Group.all.map {|g| [g.name, g.id]}
+  end
+end

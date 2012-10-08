@@ -8,7 +8,6 @@ describe TasksController do
   end
 
   def produce_tasks(user, view)
-    #~ Time.zone = 'UTC'
     settings = (view != "completed" ? Setting.task_bucket : Setting.task_completed)
 
     settings.inject({}) do | hash, due |
@@ -61,8 +60,9 @@ describe TasksController do
     end
 
     TASK_STATUSES.each do |view|
+
       it "should expose all tasks as @tasks and render [index] template for #{view} view" do
-        @tasks = produce_tasks(@current_user, view)
+        @tasks = produce_tasks(current_user, view)
 
         get :index, :view => view
 
@@ -73,7 +73,7 @@ describe TasksController do
       end
 
       it "should render all tasks as JSON for #{view} view" do
-        @tasks = produce_tasks(@current_user, view)
+        @tasks = produce_tasks(current_user, view)
 
         request.env["HTTP_ACCEPT"] = "application/json"
         get :index, :view => view
@@ -92,7 +92,7 @@ describe TasksController do
       end
 
       it "should render all tasks as xml for #{view} view" do
-        @tasks = produce_tasks(@current_user, view)
+        @tasks = produce_tasks(current_user, view)
 
         request.env["HTTP_ACCEPT"] = "application/xml"
         get :index, :view => view
@@ -117,10 +117,6 @@ describe TasksController do
   describe "responding to GET show" do
 
     TASK_STATUSES.each do |view|
-      it "should render tasks index for #{view} view (since a task doesn't have landing page)" do
-        get :show, :id => 42, :view => view
-        response.should render_template("tasks/index")
-      end
 
       it "should render the requested task as JSON for #{view} view" do
         Task.stub_chain(:tracked_by, :find).and_return(task = mock("Task"))
@@ -148,8 +144,8 @@ describe TasksController do
   describe "responding to GET new" do
 
     it "should expose a new task as @task and render [new] template" do
-      account = FactoryGirl.create(:account, :user => @current_user)
-      @task = FactoryGirl.build(:task, :user => @current_user, :asset => account)
+      account = FactoryGirl.create(:account, :user => current_user)
+      @task = FactoryGirl.build(:task, :user => current_user, :asset => account)
       Task.stub!(:new).and_return(@task)
       @users = [ FactoryGirl.create(:user) ]
       @bucket = Setting.unroll(:task_bucket)[1..-1] << [ "On Specific Date...", :specific_time ]
@@ -196,8 +192,8 @@ describe TasksController do
   describe "responding to GET edit" do
 
     it "should expose the requested task as @task and render [edit] template" do
-      @asset = FactoryGirl.create(:account, :user => @current_user)
-      @task = FactoryGirl.create(:task, :user => @current_user, :asset => @asset)
+      @asset = FactoryGirl.create(:account, :user => current_user)
+      @task = FactoryGirl.create(:task, :user => current_user, :asset => @asset)
       @users = [ FactoryGirl.create(:user) ]
       @bucket = Setting.unroll(:task_bucket)[1..-1] << [ "On Specific Date...", :specific_time ]
       @category = Setting.unroll(:task_category)
@@ -212,8 +208,8 @@ describe TasksController do
     end
 
     it "should find previously open task when necessary" do
-      @task = FactoryGirl.create(:task, :user => @current_user)
-      @previous = FactoryGirl.create(:task, :id => 999, :user => @current_user)
+      @task = FactoryGirl.create(:task, :user => current_user)
+      @previous = FactoryGirl.create(:task, :id => 999, :user => current_user)
 
       xhr :get, :edit, :id => @task.id, :previous => 999
       assigns[:task].should == @task
@@ -223,7 +219,7 @@ describe TasksController do
 
     describe "(task got deleted or reassigned)" do
       it "should reload current page with the flash message if the task got deleted" do
-        @task = FactoryGirl.create(:task, :user => FactoryGirl.create(:user), :assignee => @current_user)
+        @task = FactoryGirl.create(:task, :user => FactoryGirl.create(:user), :assignee => current_user)
         @task.destroy
 
         xhr :get, :edit, :id => @task.id
@@ -242,8 +238,8 @@ describe TasksController do
 
     describe "(previous task got deleted or reassigned)" do
       before(:each) do
-        @task = FactoryGirl.create(:task, :user => @current_user)
-        @previous = FactoryGirl.create(:task, :user => FactoryGirl.create(:user), :assignee => @current_user)
+        @task = FactoryGirl.create(:task, :user => current_user)
+        @previous = FactoryGirl.create(:task, :user => FactoryGirl.create(:user), :assignee => current_user)
       end
 
       it "should notify the view if previous task got deleted" do
@@ -274,7 +270,7 @@ describe TasksController do
     describe "with valid params" do
 
       it "should expose a newly created task as @task and render [create] template" do
-        @task = FactoryGirl.build(:task, :user => @current_user)
+        @task = FactoryGirl.build(:task, :user => current_user)
         Task.stub!(:new).and_return(@task)
 
         xhr :post, :create, :task => { :name => "Hello world" }
@@ -286,7 +282,7 @@ describe TasksController do
 
       [ "", "?view=pending", "?view=assigned", "?view=completed" ].each do |view|
         it "should update tasks sidebar when [create] is being called from [/tasks#{view}] page" do
-          @task = FactoryGirl.build(:task, :user => @current_user)
+          @task = FactoryGirl.build(:task, :user => current_user)
           Task.stub!(:new).and_return(@task)
 
           request.env["HTTP_REFERER"] = "http://localhost/tasks#{view}"
@@ -299,7 +295,7 @@ describe TasksController do
     describe "with invalid params" do
 
       it "should expose a newly created but unsaved task as @lead and still render [create] template" do
-        @task = FactoryGirl.build(:task, :name => nil, :user => @current_user)
+        @task = FactoryGirl.build(:task, :name => nil, :user => current_user)
         Task.stub!(:new).and_return(@task)
 
         xhr :post, :create, :task => {}
@@ -318,7 +314,7 @@ describe TasksController do
 
     describe "with valid params" do
       it "should update the requested task, expose it as @task, and render [update] template" do
-        @task = FactoryGirl.create(:task, :name => "Hi", :user => @current_user)
+        @task = FactoryGirl.create(:task, :name => "Hi", :user => current_user)
 
         xhr :put, :update, :id => @task.id, :task => { :name => "Hello" }
         @task.reload.name.should == "Hello"
@@ -330,7 +326,7 @@ describe TasksController do
 
       [ "", "?view=pending", "?view=assigned", "?view=completed" ].each do |view|
         it "should update tasks sidebar when [update] is being called from [/tasks#{view}] page" do
-          @task = FactoryGirl.create(:task, :name => "Hi", :user => @current_user)
+          @task = FactoryGirl.create(:task, :name => "Hi", :user => current_user)
 
           request.env["HTTP_REFERER"] = "http://localhost/tasks#{view}"
           xhr :put, :update, :id => @task.id, :task => { :name => "Hello" }
@@ -341,7 +337,7 @@ describe TasksController do
 
     describe "with invalid params" do
       it "should not update the task, but still expose it as @task and render [update] template" do
-        @task = FactoryGirl.create(:task, :name => "Hi", :user => @current_user)
+        @task = FactoryGirl.create(:task, :name => "Hi", :user => current_user)
 
         xhr :put, :update, :id => @task.id, :task => { :name => nil }
         @task.reload.name.should == "Hi"
@@ -354,7 +350,7 @@ describe TasksController do
 
     describe "task got deleted or reassigned" do
       it "should reload current page with the flash message if the task got deleted" do
-        @task = FactoryGirl.create(:task, :user => FactoryGirl.create(:user), :assignee => @current_user)
+        @task = FactoryGirl.create(:task, :user => FactoryGirl.create(:user), :assignee => current_user)
         @task.destroy
 
         xhr :put, :update, :id => @task.id, :task => { :name => "Hello" }
@@ -378,7 +374,7 @@ describe TasksController do
   describe "responding to DELETE destroy" do
 
     it "should destroy the requested task and render [destroy] template" do
-      @task = FactoryGirl.create(:task, :user => @current_user)
+      @task = FactoryGirl.create(:task, :user => current_user)
 
       xhr :delete, :destroy, :id => @task.id, :bucket => "due_asap"
       assigns(:task).should == @task
@@ -389,7 +385,7 @@ describe TasksController do
 
     [ "", "?view=pending", "?view=assigned", "?view=completed" ].each do |view|
       it "should update sidebar when [destroy] is being called from [/tasks#{view}]" do
-        @task = FactoryGirl.create(:task, :user => @current_user)
+        @task = FactoryGirl.create(:task, :user => current_user)
 
         request.env["HTTP_REFERER"] = "http://localhost/tasks#{view}"
         xhr :delete, :destroy, :id => @task.id, :bucket => "due_asap"
@@ -398,7 +394,7 @@ describe TasksController do
     end
 
     it "should not update sidebar when [destroy] is being called from asset page" do
-      @task = FactoryGirl.create(:task, :user => @current_user)
+      @task = FactoryGirl.create(:task, :user => current_user)
 
       xhr :delete, :destroy, :id => @task.id
       assigns[:task_total].should == nil
@@ -406,7 +402,7 @@ describe TasksController do
 
     describe "task got deleted or reassigned" do
       it "should reload current page with the flash message if the task got deleted" do
-        @task = FactoryGirl.create(:task, :user => FactoryGirl.create(:user), :assignee => @current_user)
+        @task = FactoryGirl.create(:task, :user => FactoryGirl.create(:user), :assignee => current_user)
         @task.destroy
 
         xhr :delete, :destroy, :id => @task.id
@@ -430,7 +426,7 @@ describe TasksController do
   describe "responding to PUT complete" do
 
     it "should change task status, expose task as @task, and render [complete] template" do
-      @task = FactoryGirl.create(:task, :completed_at => nil, :user => @current_user)
+      @task = FactoryGirl.create(:task, :completed_at => nil, :user => current_user)
 
       xhr :put, :complete, :id => @task.id
       @task.reload.completed_at.should_not == nil
@@ -440,7 +436,7 @@ describe TasksController do
     end
 
     it "should change task status, expose task as @task, and render [complete] template where task.bucket = 'specific_time'" do
-      @task = FactoryGirl.create(:task, :completed_at => nil, :user => @current_user, :bucket => "specific_time", :calendar => "01/01/2010 1:00 AM")
+      @task = FactoryGirl.create(:task, :completed_at => nil, :user => current_user, :bucket => "specific_time", :calendar => "01/01/2010 1:00 AM")
 
       xhr :put, :complete, :id => @task.id
       @task.reload.completed_at.should_not == nil
@@ -450,7 +446,7 @@ describe TasksController do
     end
 
     it "should change update tasks sidebar if bucket is not empty" do
-      @task = FactoryGirl.create(:task, :completed_at => nil, :user => @current_user)
+      @task = FactoryGirl.create(:task, :completed_at => nil, :user => current_user)
 
       xhr :put, :complete, :id => @task.id, :bucket => "due_asap"
       assigns[:task_total].should be_an_instance_of(HashWithIndifferentAccess)
@@ -458,7 +454,7 @@ describe TasksController do
 
     describe "task got deleted or reassigned" do
       it "should reload current page with the flash message if the task got deleted" do
-        @task = FactoryGirl.create(:task, :user => FactoryGirl.create(:user), :assignee => @current_user)
+        @task = FactoryGirl.create(:task, :user => FactoryGirl.create(:user), :assignee => current_user)
         @task.destroy
 
         xhr :put, :complete, :id => @task.id
@@ -505,4 +501,3 @@ describe TasksController do
     end
   end
 end
-

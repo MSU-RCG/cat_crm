@@ -57,6 +57,8 @@ class Lead < ActiveRecord::Base
   has_one     :business_address, :dependent => :destroy, :as => :addressable, :class_name => "Address", :conditions => "address_type='Business'"
   has_many    :emails, :as => :mediator
 
+  serialize :subscribed_users, Set
+
   accepts_nested_attributes_for :business_address, :allow_destroy => true
 
   scope :state, lambda { |filters|
@@ -67,15 +69,13 @@ class Lead < ActiveRecord::Base
   scope :created_by, lambda { |user| where('user_id = ?' , user.id) }
   scope :assigned_to, lambda { |user| where('assigned_to = ?' , user.id) }
 
-  scope :text_search, lambda { |query|
-    query = query.gsub(/[^\w\s\-\.'\p{L}]/u, '').strip
-    where('upper(first_name) LIKE upper(:s) OR upper(last_name) LIKE upper(:s) OR upper(company) LIKE upper(:m) OR upper(email) LIKE upper(:m)', :s => "#{query}%", :m => "%#{query}%")
-  }
+  scope :text_search, lambda { |query| search('first_name_or_last_name_or_company_or_email_cont' => query).result }
 
   uses_user_permissions
   acts_as_commentable
+  uses_comment_extensions
   acts_as_taggable_on :tags
-  has_paper_trail
+  has_paper_trail :ignore => [ :subscribed_users ]
   has_fields
   exportable
   sortable :by => [ "first_name ASC", "last_name ASC", "company ASC", "rating DESC", "created_at DESC", "updated_at DESC" ], :default => "created_at DESC"
@@ -97,21 +97,31 @@ class Lead < ActiveRecord::Base
   #----------------------------------------------------------------------------
   def save_with_permissions(params)
     self.campaign = Campaign.find(params[:campaign]) unless params[:campaign].blank?
-    if self.access == "Campaign" && self.campaign # Copy campaign permissions.
+    if params[:lead][:access] == "Campaign" && self.campaign # Copy campaign permissions.
       save_with_model_permissions(Campaign.find(self.campaign_id))
     else
-      super(params[:users]) # invoke :save_with_permissions in plugin.
+      self.attributes = params[:leads]
+      save
     end
   end
 
+  # Deprecated: see update_with_lead_counters
+  #----------------------------------------------------------------------------
+  def update_with_permissions(attributes, users = nil)
+    ActiveSupport::Deprecation.warn "lead.update_with_permissions is deprecated and may be removed from future releases, use user_ids and group_ids inside attributes instead and call lead.update_with_lead_counters"
+    update_with_lead_counters(attributes)
+  end
+  
   # Update lead attributes taking care of campaign lead counters when necessary.
   #----------------------------------------------------------------------------
-  def update_with_permissions(attributes, users)
+  def update_with_lead_counters(attributes)
     if self.campaign_id == attributes[:campaign_id] # Same campaign (if any).
-      super(attributes, users)                      # See lib/fat_free_crm/permissions.rb
+      self.attributes = attributes
+      self.save
     else                                            # Campaign has been changed -- update lead counters...
       decrement_leads_count                         # ..for the old campaign...
-      lead = super(attributes, users)               # Assign new campaign.
+      self.attributes = attributes                  # Assign new campaign.
+      lead = self.save
       increment_leads_count                         # ...and now for the new campaign.
       lead
     end
@@ -121,11 +131,11 @@ class Lead < ActiveRecord::Base
   # successful promotion Lead status gets set to :converted.
   #----------------------------------------------------------------------------
   def promote(params)
-    account     = Account.create_or_select_for(self, params[:account], params[:users])
-    opportunity = Opportunity.create_for(self, account, params[:opportunity], params[:users])
+    account     = Account.create_or_select_for(self, params[:account])
+    opportunity = Opportunity.create_for(self, account, params[:opportunity])
     contact     = Contact.create_for(self, account, opportunity, params)
 
-    return account, opportunity, contact
+    [account, opportunity, contact]
   end
 
   #----------------------------------------------------------------------------
@@ -162,7 +172,8 @@ class Lead < ActiveRecord::Base
   end
   alias :name :full_name
 
-  private
+private
+
   #----------------------------------------------------------------------------
   def increment_leads_count
     if self.campaign_id
@@ -182,6 +193,4 @@ class Lead < ActiveRecord::Base
   def users_for_shared_access
     errors.add(:access, :share_lead) if self[:access] == "Shared" && !self.permissions.any?
   end
-
 end
-
