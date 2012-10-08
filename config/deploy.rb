@@ -4,7 +4,7 @@ require "bundler/capistrano"
 
 set :rvm_ruby_string, 'ruby-1.9.2-p180@passenger'
 set :application, "catsrm-nursing"
-set :branch, "master"
+set :branch, "catsrm"
 set :deploy_via, :remote_cache
 
 set :scm, :git
