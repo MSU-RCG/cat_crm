@@ -198,8 +198,7 @@
   { :active : false, :text : :tab_leads,         :url : { :controller : "leads"          } },
   { :active : false, :text : :tab_accounts,      :url : { :controller : "accounts"       } },
   { :active : false, :text : :tab_contacts,      :url : { :controller : "contacts"       } },
-  { :active : false, :text : :tab_opportunities, :url : { :controller : "opportunities"  } },
-  { :active : false, :text : "Student Reports", :url : { :controller : "student_reports"  } }
+  { :active : false, :text : :tab_opportunities, :url : { :controller : "opportunities"  } }
 ]
 
 :admin_tabs: [
