@@ -174,7 +174,6 @@
 #
 :require_last_names: true
 
-
 # Beta features
 #------------------------------------------------------------------------------
 # These are features that need to be in the master branch due to extensive codebase changes,
@@ -185,6 +184,8 @@
 
 # - PaperTrail history UI
 :paper_trail_ui_enabled: true
+
+# Show comments on dashboard
 :comments_visible_on_dashboard: false
 
 # Background information

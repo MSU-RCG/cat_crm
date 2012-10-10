@@ -34,7 +34,7 @@ en-US:
   affiliate: Affiliate
   competitor: Competitor
   customer: Customer
-  partner: Partneradm
+  partner: Partner
   reseller: Reseller
   vendor: Vendor
 
@@ -227,7 +227,7 @@ en-US:
   option_target_revenue: target revenue
   option_updated_at: date updated
   show_per_page: Show %{number} %{models} per page using %{fmt} format.
-  sort_by: Sort %{models} by %{field}.
+  sort_by: Sort by %{field}
   sort_by_displaying: Sort %{models} by %{field} displaying first name %{position} last name.
 
   # Views -> Profile.
@@ -382,6 +382,16 @@ en-US:
   web_presence: Web Presence
   web_presence_small: web presence
   works_at: "%{job_title} at %{company}"
+  general_info: General Information
+  show_general_info_small: Show general information for this contact.
+  show_extra_info_small: Show extra information for this contact.
+  tag_details: %{tag} Details
+  show_tag_info_small: Show %{tag} information for this contact.
+  shared_with_everyone: Shared with everyone
+  title: Title
+  subscriptions: Subscriptions
+  # contact 'full' view outline
+  option_full: full
 
   # Views -> Leads.
   #----------------------------------------------------------------------------
