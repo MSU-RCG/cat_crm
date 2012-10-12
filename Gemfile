@@ -30,7 +30,6 @@ gem 'responds_to_parent', :git => "https://github.com/LessonPlanet/responds_to_p
 remove 'fat_free_crm'
 
 gem 'mysql2'
-gem 'activerecord-mysql-adapter'
 gem 'ruport' 
 
 group :development, :test do
