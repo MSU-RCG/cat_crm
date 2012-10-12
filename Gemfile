@@ -29,7 +29,7 @@ gem 'responds_to_parent', :git => "https://github.com/LessonPlanet/responds_to_p
 # Remove fat_free_crm from dependencies, to stop it from being auto-required.
 remove 'fat_free_crm'
 
-gem 'pg', '~> 0.13.2'
+gem 'mysql2'
 gem 'ruport' 
 
 group :development, :test do
