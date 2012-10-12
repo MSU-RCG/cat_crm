@@ -1,9 +1,9 @@
-$:.unshift(File.expand_path('./lib', ENV['rvm_path'])) # Add RVM's lib directory to the load path.
 require "rvm/capistrano"                  # Load RVM's capistrano plugin.
 require "bundler/capistrano"
 
 set :rvm_ruby_string, 'ruby-1.9.2-p180@passenger'
 set :application, "catsrm-nursing"
+set :rvm_type, :system
 set :branch, "catsrm"
 set :deploy_via, :remote_cache
 
