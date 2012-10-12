@@ -1,8 +1,8 @@
-$:.unshift(File.expand_path('./lib', ENV['rvm_path'])) # Add RVM's lib directory to the load path.
 require "rvm/capistrano"                  # Load RVM's capistrano plugin.
 require "bundler/capistrano"
 
 set :rvm_ruby_string, 'ruby-1.9.2-p180@passenger'
+set :rvm_type, :system
 set :application, "crm"
 set :branch, "master"
 set :deploy_via, :remote_cache
@@ -17,6 +17,7 @@ role :db,  "crm.rcg.montana.edu", :primary => true
 set :use_sudo, false
 set :user, "rails"
 set :deploy_to, "/var/rails"
+load 'deploy/assets'
 
 namespace :deploy do
   task :start do ; end
