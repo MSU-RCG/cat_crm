@@ -52,7 +52,8 @@ Pull requests and bug reports are always welcome!
 
 ## System Requirements
 
-* Ruby v1.8.7 or v1.9.2
+* Ruby v1.9.3
+  * Note that Ruby v1.8.7 was supported until v0.11.4 (see https://github.com/fatfreecrm/fat_free_crm/tree/ruby1.8)
 * MySQL v4.1.1 or later (v5+ is recommended), SQLite v3.4 or later, or Postgres 8.4.8 or later.
 * ImageMagick (optional, only needed if you would like to use avatars)
 
@@ -102,7 +103,7 @@ Please run the following commands in this order:
 
 ```bash
 bundle install --without heroku   # Installs gem dependencies
-rake ffcrm:upgrade:schema         # Updates your schema to use the new timestamped migrations
+rake db:schema:upgrade            # Updates your schema to use the new timestamped migrations
 rake db:migrate                   # Runs any new database migrations.
 ```
 
@@ -136,24 +137,33 @@ the concepts:
 
 ## Contributors
 
+* [Michael Dvorkin (@michaeldv)](https://github.com/michaeldv) - Founding creator
 * [Nathan Broadbent (@ndbroadbent)](https://github.com/ndbroadbent)
 * [Ben Tillman (@warp)](https://github.com/warp)
 * [Steve Kenworthy (@steveyken)](https://github.com/steveyken)
 
-See the [contributors graph](https://github.com/fatfreecrm/fat_free_crm/graphs/contributors) for further details.
+See the [contributors graph](https://github.com/fatfreecrm/fat_free_crm/graphs/contributors) and the [contributors file](https://github.com/fatfreecrm/fat_free_crm/blob/master/CONTRIBUTORS) for further details.
 
 ## License
 
-Copyright (c) 2008-2011 by Michael Dvorkin. All rights reserved.
+Fat Free CRM
+Copyright (c) 2008-2013 Michael Dvorkin and contributors.
 
-This program is free software: you can redistribute it and/or modify it
-under the terms of the GNU Affero General Public License as published by
-the Free Software Foundation, either version 3 of the License, or (at your
-option) any later version.
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
 
-This program is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-FOR A PARTICULAR PURPOSE.
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
 
-See LICENSE file for more details.
-
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
