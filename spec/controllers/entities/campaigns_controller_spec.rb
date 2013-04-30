@@ -81,7 +81,7 @@ describe CampaignsController do
         assigns[:campaigns].should == []
         response.should render_template("campaigns/index")
       end
-      
+
       it "should reset current_page when query is altered" do
         session[:campaigns_current_page] = 42
         session[:campaigns_current_query] = "bill"
@@ -600,40 +600,18 @@ describe CampaignsController do
     it_should_behave_like("auto complete")
   end
 
-  # GET /campaigns/options                                                 AJAX
-  #----------------------------------------------------------------------------
-  describe "responding to GET options" do
-    it "should set current user preferences when showing options" do
-      @per_page = FactoryGirl.create(:preference, :user => current_user, :name => "campaigns_per_page", :value => Base64.encode64(Marshal.dump(42)))
-      @outline  = FactoryGirl.create(:preference, :user => current_user, :name => "campaigns_outline",  :value => Base64.encode64(Marshal.dump("option_long")))
-      @sort_by  = FactoryGirl.create(:preference, :user => current_user, :name => "campaigns_sort_by",  :value => Base64.encode64(Marshal.dump("campaigns.name ASC")))
-
-      xhr :get, :options
-      assigns[:per_page].should == 42
-      assigns[:outline].should  == "option_long"
-      assigns[:sort_by].should  == "campaigns.name ASC"
-    end
-
-    it "should not assign instance variables when hiding options" do
-      xhr :get, :options, :cancel => "true"
-      assigns[:per_page].should == nil
-      assigns[:outline].should  == nil
-      assigns[:sort_by].should  == nil
-    end
-  end
-
   # POST /campaigns/redraw                                                 AJAX
   #----------------------------------------------------------------------------
   describe "responding to POST redraw" do
     it "should save user selected campaign preference" do
-      xhr :post, :redraw, :per_page => 42, :outline => "brief", :sort_by => "name"
+      xhr :post, :redraw, :per_page => 42, :view => "brief", :sort_by => "name"
       current_user.preference[:campaigns_per_page].should == "42"
-      current_user.preference[:campaigns_outline].should  == "brief"
+      current_user.preference[:campaigns_index_view].should  == "brief"
       current_user.preference[:campaigns_sort_by].should  == "campaigns.name ASC"
     end
 
     it "should reset current page to 1" do
-      xhr :post, :redraw, :per_page => 42, :outline => "brief", :sort_by => "name"
+      xhr :post, :redraw, :per_page => 42, :view => "brief", :sort_by => "name"
       session[:campaigns_current_page].should == 1
     end
 

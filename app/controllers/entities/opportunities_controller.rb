@@ -23,29 +23,26 @@ class OpportunitiesController < EntitiesController
   # GET /opportunities
   #----------------------------------------------------------------------------
   def index
-    @opportunities = get_opportunities(:page => params[:page])
-    
+    @opportunities = get_opportunities(:page => params[:page], :per_page => params[:per_page])
+
     respond_with @opportunities do |format|
       format.xls { render :layout => 'header' }
     end
   end
 
   # GET /opportunities/1
+  # AJAX /opportunities/1
   #----------------------------------------------------------------------------
   def show
-    respond_with(@opportunity) do |format|
-      format.html do
-        @comment = Comment.new
-        @timeline = timeline(@opportunity)
-      end
-    end
+    @comment = Comment.new
+    @timeline = timeline(@opportunity)
+    respond_with(@opportunity)
   end
 
   # GET /opportunities/new
   #----------------------------------------------------------------------------
   def new
     @opportunity.attributes = {:user => current_user, :stage => "prospecting", :access => Setting.default_access, :assigned_to => nil}
-    @users       = User.except(current_user)
     @account     = Account.new(:user => current_user, :access => Setting.default_access)
     @accounts    = Account.my.order('name')
 
@@ -64,7 +61,6 @@ class OpportunitiesController < EntitiesController
   # GET /opportunities/1/edit                                              AJAX
   #----------------------------------------------------------------------------
   def edit
-    @users = User.except(current_user)
     @account  = @opportunity.account || Account.new(:user => current_user)
     @accounts = Account.my.order('name')
 
@@ -91,7 +87,6 @@ class OpportunitiesController < EntitiesController
           get_data_for_sidebar(:campaign)
         end
       else
-        @users = User.except(current_user)
         @accounts = Account.my.order('name')
         unless params[:account][:id].blank?
           @account = Account.find(params[:account][:id])
@@ -121,7 +116,6 @@ class OpportunitiesController < EntitiesController
           get_data_for_sidebar(:campaign)
         end
       else
-        @users = User.except(current_user)
         @accounts = Account.my.order('name')
         if @opportunity.account
           @account = Account.find(@opportunity.account.id)
@@ -160,28 +154,24 @@ class OpportunitiesController < EntitiesController
   #----------------------------------------------------------------------------
   # Handled by ApplicationController :auto_complete
 
-  # GET /opportunities/options                                             AJAX
-  #----------------------------------------------------------------------------
-  def options
-    unless params[:cancel].true?
-      @per_page = current_user.pref[:opportunities_per_page] || Opportunity.per_page
-      @outline  = current_user.pref[:opportunities_outline]  || Opportunity.outline
-      @sort_by  = current_user.pref[:opportunities_sort_by]  || Opportunity.sort_by
-    end
-  end
-
   # POST /opportunities/redraw                                             AJAX
   #----------------------------------------------------------------------------
   def redraw
-    @opportunities = get_opportunities(:page => 1)
-    render :index
+    @opportunities = get_opportunities(:page => 1, :per_page => params[:per_page])
+    set_options # Refresh options
+    
+    respond_with(@opportunities) do |format|
+      format.js { render :index }
+    end
   end
 
   # POST /opportunities/filter                                             AJAX
   #----------------------------------------------------------------------------
   def filter
-    @opportunities = get_opportunities(:page => 1)
-    render :index
+    @opportunities = get_opportunities(:page => 1, :per_page => params[:per_page])
+    respond_with(@opportunities) do |format|
+      format.js { render :index }
+    end
   end
 
 private
@@ -232,7 +222,6 @@ private
   #----------------------------------------------------------------------------
   def set_params
     current_user.pref[:opportunities_per_page] = params[:per_page] if params[:per_page]
-    current_user.pref[:opportunities_outline]  = params[:outline]  if params[:outline]
     current_user.pref[:opportunities_sort_by]  = Opportunity::sort_by_map[params[:sort_by]] if params[:sort_by]
     session[:opportunities_filter] = params[:stage] if params[:stage]
   end

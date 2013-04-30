@@ -58,27 +58,37 @@ class Contact < ActiveRecord::Base
   has_many    :opportunities, :through => :contact_opportunities, :uniq => true, :order => "opportunities.id DESC"
   has_many    :tasks, :as => :asset, :dependent => :destroy#, :order => 'created_at DESC'
   has_one     :business_address, :dependent => :destroy, :as => :addressable, :class_name => "Address", :conditions => "address_type = 'Business'"
+  has_many    :addresses, :dependent => :destroy, :as => :addressable, :class_name => "Address" # advanced search uses this
   has_many    :emails, :as => :mediator
+
+  has_ransackable_associations %w(account opportunities tags activities emails addresses comments tasks)
+  ransack_can_autocomplete
 
   serialize :subscribed_users, Set
 
-  accepts_nested_attributes_for :business_address, :allow_destroy => true
-
+  accepts_nested_attributes_for :business_address, :allow_destroy => true, :reject_if => proc {|attributes| Address.reject_address(attributes)}
+    
   scope :created_by, lambda { |user| { :conditions => [ "user_id = ?", user.id ] } }
   scope :assigned_to, lambda { |user| { :conditions => ["assigned_to = ?", user.id ] } }
 
   scope :text_search, lambda { |query|
-    query = query.gsub(/[^@\w\s\-\.'\p{L}]/u, '').strip
+    t = Contact.arel_table
     # We can't always be sure that names are entered in the right order, so we must
     # split the query into all possible first/last name permutations.
     name_query = if query.include?(" ")
-      query.name_permutations.map{ |first, last|
-        "(upper(first_name) LIKE upper('%#{first}%') AND upper(last_name) LIKE upper('%#{last}%'))"
-      }.join(" OR ")
+      scope, *rest = query.name_permutations.map{ |first, last|
+        t[:first_name].matches("%#{first}%").and(t[:last_name].matches("%#{last}%"))
+      }
+      rest.map{|r| scope = scope.or(r)} if scope
+      scope
     else
-      "upper(first_name) LIKE upper('%#{query}%') OR upper(last_name) LIKE upper('%#{query}%')"
+      t[:first_name].matches("%#{query}%").or(t[:last_name].matches("%#{query}%"))
     end
-    where("#{name_query} OR upper(email) LIKE upper(:m) OR upper(alt_email) LIKE upper(:m) OR phone LIKE :m OR mobile LIKE :m", :m => "%#{query}%")
+
+    other = t[:email].matches("%#{query}%").or(t[:alt_email].matches("%#{query}%"))
+    other = other.or(t[:phone].matches("%#{query}%")).or(t[:mobile].matches("%#{query}%"))
+    
+    where( name_query.nil? ? other : name_query.or(other) )
   }
 
   uses_user_permissions
@@ -98,7 +108,6 @@ class Contact < ActiveRecord::Base
   # Default values provided through class methods.
   #----------------------------------------------------------------------------
   def self.per_page ; 20                  ; end
-  def self.outline  ; "long"              ; end
   def self.first_name_position ; "before" ; end
 
   #----------------------------------------------------------------------------
@@ -114,8 +123,7 @@ class Contact < ActiveRecord::Base
   # Backend handler for [Create New Contact] form (see contact/create).
   #----------------------------------------------------------------------------
   def save_with_account_and_permissions(params)
-    account = Account.create_or_select_for(self, params[:account])
-    self.account_contact = AccountContact.new(:account => account, :contact => self) unless account.id.blank?
+    save_account(params)
     self.opportunities << Opportunity.find(params[:opportunity]) unless params[:opportunity].blank?
     self.save
   end
@@ -123,18 +131,9 @@ class Contact < ActiveRecord::Base
   # Backend handler for [Update Contact] form (see contact/update).
   #----------------------------------------------------------------------------
   def update_with_account_and_permissions(params)
-    if params[:account][:id] == "" || params[:account][:name] == ""
-      notify_account_change(:from => self.account, :to => nil)
-      self.account = nil # Contact is not associated with the account anymore.
-    else
-      account = Account.create_or_select_for(self, params[:account])
-      if self.account != account and account.id.present?
-        notify_account_change(:from => self.account, :to => account)
-        self.account_contact = AccountContact.new(:account => account, :contact => self)
-      end
-      
-    end
-    self.reload
+    save_account(params)
+    # Must set access before user_ids, because user_ids= method depends on access value.
+    self.access = params[:contact][:access] if params[:contact][:access]
     self.attributes = params[:contact]
     self.save
   end
@@ -197,30 +196,25 @@ class Contact < ActiveRecord::Base
     contact
   end
 
-  # Create a version record when account is changed
-  #----------------------------------------------------------------------------
-  def notify_account_change(options)  
-    from_id = !options[:from].nil? ? options[:from].id : nil
-    from_name = !options[:from].nil? ? options[:from].name : nil
-    to_id = !options[:to].nil? ? options[:to].id : nil
-    to_name = !options[:to].nil? ? options[:to].name : nil
-    if from_id != to_id
-      Version.create(:item_type => 'AccountContact', :item_id => 1,
-        :event => 'update', :whodunnit => User.current_user, :object => nil,
-        :object_changes => 
-          {:account_contact_id => [from_id, to_id],
-           :account_contact_name => [from_name, to_name]
-           }.to_yaml,
-        :related => self
-       )
-    end
-  end
-
   private
   # Make sure at least one user has been selected if the contact is being shared.
   #----------------------------------------------------------------------------
   def users_for_shared_access
     errors.add(:access, :share_contact) if self[:access] == "Shared" && !self.permissions.any?
+  end
+  
+  # Handles the saving of related accounts
+  #----------------------------------------------------------------------------
+  def save_account(params)
+    if params[:account][:id] == "" || params[:account][:name] == ""
+      self.account = nil
+    else
+      account = Account.create_or_select_for(self, params[:account])
+      if self.account != account and account.id.present?
+        self.account_contact = AccountContact.new(:account => account, :contact => self)
+      end
+    end
+    self.reload unless self.new_record? # ensure the account association is updated
   end
 
 end

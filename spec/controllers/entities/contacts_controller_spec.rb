@@ -50,7 +50,7 @@ describe ContactsController do
         assigns[:contacts].should == []
         response.should render_template("contacts/index")
       end
-      
+
       it "should reset current_page when query is altered" do
         session[:contacts_current_page] = 42
         session[:contacts_current_query] = "bill"
@@ -174,13 +174,11 @@ describe ContactsController do
       @contact = Contact.new(:user => current_user,
                              :access => Setting.default_access)
       @account = Account.new(:user => current_user)
-      @users = [ FactoryGirl.create(:user) ]
       @accounts = [ FactoryGirl.create(:account, :user => current_user) ]
 
       xhr :get, :new
       assigns[:contact].attributes.should == @contact.attributes
       assigns[:account].attributes.should == @account.attributes
-      assigns[:users].should == @users
       assigns[:accounts].should == @accounts
       assigns[:opportunity].should == nil
       response.should render_template("contacts/new")
@@ -219,12 +217,10 @@ describe ContactsController do
 
     it "should expose the requested contact as @contact and render [edit] template" do
       @contact = FactoryGirl.create(:contact, :id => 42, :user => current_user, :lead => nil)
-      @users = [ FactoryGirl.create(:user) ]
       @account = Account.new(:user => current_user)
 
       xhr :get, :edit, :id => 42
       assigns[:contact].should == @contact
-      assigns[:users].should == @users
       assigns[:account].attributes.should == @account.attributes
       assigns[:previous].should == nil
       response.should render_template("contacts/edit")
@@ -306,7 +302,7 @@ describe ContactsController do
 
         xhr :post, :create, :contact => { :first_name => "Billy", :last_name => "Bones" }, :account => { :name => "Hello world" }
         assigns(:contact).should == @contact
-        assigns(:contact).account.name.should == "Hello world"
+        assigns(:contact).reload.account.name.should == "Hello world"
         response.should render_template("contacts/create")
       end
 
@@ -343,7 +339,6 @@ describe ContactsController do
       before(:each) do
         @contact = FactoryGirl.build(:contact, :first_name => nil, :user => current_user, :lead => nil)
         Contact.stub!(:new).and_return(@contact)
-        @users = [ FactoryGirl.create(:user) ]
       end
 
       # Redraw [create] form with selected account.
@@ -353,7 +348,6 @@ describe ContactsController do
         # This redraws [create] form with blank account.
         xhr :post, :create, :contact => {}, :account => { :id => 42, :user_id => current_user.id }
         assigns(:contact).should == @contact
-        assigns(:users).should == @users
         assigns(:account).should == @account
         assigns(:accounts).should == [ @account ]
         response.should render_template("contacts/create")
@@ -366,7 +360,6 @@ describe ContactsController do
         request.env["HTTP_REFERER"] = "http://localhost/accounts/123"
         xhr :post, :create, :contact => { :first_name => nil }, :account => { :name => nil, :user_id => current_user.id }
         assigns(:contact).should == @contact
-        assigns(:users).should == @users
         assigns(:account).should == @account
         assigns(:accounts).should == [ @account ]
         response.should render_template("contacts/create")
@@ -378,7 +371,6 @@ describe ContactsController do
 
         xhr :post, :create, :contact => { :first_name => nil }, :account => { :name => nil, :user_id => current_user.id }
         assigns(:contact).should == @contact
-        assigns(:users).should == @users
         assigns(:account).attributes.should == @account.attributes
         assigns(:accounts).should == @accounts
         response.should render_template("contacts/create")
@@ -432,7 +424,7 @@ describe ContactsController do
 
         xhr :put, :update, :id => 42, :contact => { :first_name => "Hello", :access => "Shared", :user_ids => [7, 8] }, :account => {}
         assigns[:contact].access.should == "Shared"
-        assigns[:contact].reload.user_ids.sort.should == [ 7, 8 ]
+        assigns[:contact].user_ids.sort.should == [ 7, 8 ]
         assigns[:contact].should == @contact
       end
 
@@ -462,13 +454,11 @@ describe ContactsController do
       it "should not update the contact, but still expose it as @contact and render [update] template" do
         @contact = FactoryGirl.create(:contact, :id => 42, :user => current_user, :first_name => "Billy", :lead => nil)
         @account = Account.new(:user => current_user)
-        @users = [ FactoryGirl.create(:user) ]
 
         xhr :put, :update, :id => 42, :contact => { :first_name => nil }, :account => {}
         assigns[:contact].reload.first_name.should == "Billy"
         assigns[:contact].should == @contact
         assigns[:account].attributes.should == @account.attributes
-        assigns[:users].should == @users
         response.should render_template("contacts/update")
       end
 
@@ -653,38 +643,13 @@ describe ContactsController do
     it_should_behave_like("auto complete")
   end
 
-  # GET /contacts/options                                                  AJAX
-  #----------------------------------------------------------------------------
-  describe "responding to GET options" do
-    it "should set current user preferences when showing options" do
-      @per_page = FactoryGirl.create(:preference, :user => current_user, :name => "contacts_per_page", :value => Base64.encode64(Marshal.dump(42)))
-      @outline  = FactoryGirl.create(:preference, :user => current_user, :name => "contacts_outline",  :value => Base64.encode64(Marshal.dump("option_long")))
-      @sort_by  = FactoryGirl.create(:preference, :user => current_user, :name => "contacts_sort_by",  :value => Base64.encode64(Marshal.dump("contacts.first_name ASC")))
-      @naming   = FactoryGirl.create(:preference, :user => current_user, :name => "contacts_naming",   :value => Base64.encode64(Marshal.dump("option_after")))
-
-      xhr :get, :options
-      assigns[:per_page].should == 42
-      assigns[:outline].should  == "option_long"
-      assigns[:sort_by].should  == "contacts.first_name ASC"
-      assigns[:naming].should   == "option_after"
-    end
-
-    it "should not assign instance variables when hiding options" do
-      xhr :get, :options, :cancel => "true"
-      assigns[:per_page].should == nil
-      assigns[:outline].should  == nil
-      assigns[:sort_by].should  == nil
-      assigns[:naming].should   == nil
-    end
-  end
-
   # POST /contacts/redraw                                                  AJAX
   #----------------------------------------------------------------------------
   describe "responding to POST redraw" do
     it "should save user selected contact preference" do
-      xhr :post, :redraw, :per_page => 42, :outline => "long", :sort_by => "first_name", :naming => "after"
+      xhr :post, :redraw, :per_page => 42, :view => "long", :sort_by => "first_name", :naming => "after"
       current_user.preference[:contacts_per_page].to_i.should == 42
-      current_user.preference[:contacts_outline].should  == "long"
+      current_user.preference[:contacts_index_view].should  == "long"
       current_user.preference[:contacts_sort_by].should  == "contacts.first_name ASC"
       current_user.preference[:contacts_naming].should   == "after"
     end
@@ -696,7 +661,7 @@ describe ContactsController do
     end
 
     it "should reset current page to 1" do
-      xhr :post, :redraw, :per_page => 42, :outline => "long", :sort_by => "first_name", :naming => "after"
+      xhr :post, :redraw, :per_page => 42, :view => "long", :sort_by => "first_name", :naming => "after"
       session[:contacts_current_page].should == 1
     end
 

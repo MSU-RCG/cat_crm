@@ -17,13 +17,13 @@ feature 'Leads', %q{
     page.should have_content('L Ead 1')
     page.should have_content('L Ead 2')
     page.should have_content('L Ead 3')
-    page.should have_content('Search leads')
     page.should have_content('Create Lead')
   end
 
   scenario 'should create a new lead', :js => true do
     visit leads_page
     click_link 'Create Lead'
+    page.should have_selector('#lead_first_name', :visible => true)
     fill_in 'lead_first_name', :with => 'Mr'
     fill_in 'lead_last_name', :with => 'Lead'
     fill_in 'lead_email', :with => 'mr_lead@example.com'
@@ -34,11 +34,11 @@ feature 'Leads', %q{
     select 'Contacted', :from => 'lead_status'
     click_button 'Create Lead'
     page.should have_content('Mr Lead')
+
+    click_link 'Mr Lead'
     page.should have_content('Contacted')
     page.should have_content('mr_lead@example.com')
     page.should have_content('+44 1234 567890')
-
-    click_link 'Mr Lead'
     page.should have_content('This is an important lead.')
 
     click_link "Dashboard"
@@ -71,12 +71,8 @@ feature 'Leads', %q{
     page.should have_content('Mrs Lead')
     click_link 'Leads'
     page.should have_content('Mrs Lead')
-    page.should have_content('Rejected')
-    page.should have_content('mr_lead@example.com')
-    page.should have_content('+44 0987 654321')
 
     click_link "Dashboard"
-    page.should have_content("Bill Murray viewed lead Mrs Lead")
     page.should have_content("Bill Murray updated lead Mrs Lead")
   end
 

@@ -19,13 +19,6 @@ describe "/opportunities/new" do
     rendered.should include('crm.flick("empty", "toggle")')
   end
 
-  it "should hide options form when called from Opportunities index" do
-    controller.request.env["HTTP_REFERER"] = "http://localhost/opportunities"
-    render
-
-    rendered.should include('crm.hide_form("options")')
-  end
-
   describe "new opportunity" do
     it "should render [new] template into :create_opportunity div" do
       params[:cancel] = nil
@@ -41,7 +34,6 @@ describe "/opportunities/new" do
       render
 
       rendered.should include('crm.flip_form("create_opportunity")')
-      rendered.should include('crm.date_select_popup("opportunity_closes_on")')
     end
   end
 

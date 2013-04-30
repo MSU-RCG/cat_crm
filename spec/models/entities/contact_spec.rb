@@ -48,7 +48,6 @@ describe Contact do
     end
 
     it "should create new account if requested so" do
-      @contact.should_receive(:notify_account_change).with(:from => @account, :to => kind_of(Account))
       lambda { @contact.update_with_account_and_permissions({
         :account => { :name => "New account" },
         :contact => { :first_name => "Billy" }
@@ -59,7 +58,6 @@ describe Contact do
 
     it "should change account if another account was selected" do
       @another_account = FactoryGirl.create(:account)
-      @contact.should_receive(:notify_account_change).with(:from => @account, :to => @another_account)
       lambda { @contact.update_with_account_and_permissions({
         :account => { :id => @another_account.id },
         :contact => { :first_name => "Billy" }
@@ -69,7 +67,6 @@ describe Contact do
     end
 
     it "should drop existing Account if [create new account] is blank" do
-      @contact.should_receive(:notify_account_change).with(:from => @account, :to => @another_account)
       lambda { @contact.update_with_account_and_permissions({
         :account => { :name => "" },
         :contact => { :first_name => "Billy" }
@@ -79,7 +76,6 @@ describe Contact do
     end
 
     it "should drop existing Account if [-- None --] is selected from list of accounts" do
-      @contact.should_receive(:notify_account_change).with(:from => @account, :to => nil)
       lambda { @contact.update_with_account_and_permissions({
         :account => { :id => "" },
         :contact => { :first_name => "Billy" }
@@ -161,51 +157,48 @@ describe Contact do
     end
   end
   
-  describe "notify_account_change" do
-  
-    before(:each) do
-      @contact = FactoryGirl.create(:contact)
-      @account1 = FactoryGirl.create(:account)
-      @options = {:item_type => 'AccountContact', :item_id => 1,
-        :event => 'update', :whodunnit => User.current_user, :object => nil,
-        :related => @contact
-      }
-    end
-  
-    it "should create a new version record when an account is added" do
-      Version.should_receive(:create).with(
-        @options.merge(:object_changes => 
-          {:account_contact_id => [nil, @account1.id],
-           :account_contact_name => [nil, @account1.name]}.to_yaml
-        )
-      )
-      @contact.notify_account_change(:from => nil, :to => @account1)
-    end
-    
-    it "should create a new version record when an account is deleted" do
-      Version.should_receive(:create).with(
-        @options.merge(:object_changes => 
-          {:account_contact_id => [@account1.id, nil],
-           :account_contact_name => [@account1.name, nil]}.to_yaml
-        )
-      )
-      @contact.notify_account_change(:from => @account1, :to => nil)
-    end
-    
-    it "should create a new version record when an account is updated" do
-      account2 = FactoryGirl.create(:account)
-      Version.should_receive(:create).with(
-        @options.merge(:object_changes => 
-          {:account_contact_id => [@account1.id, account2.id],
-           :account_contact_name => [@account1.name, account2.name]}.to_yaml
-        )
-      )
-      @contact.notify_account_change(:from => @account1, :to => account2)
-    end
-  
-  end
-
   describe "permissions" do
     it_should_behave_like Ability, Contact
+  end
+  
+  describe "text_search" do
+  
+    before(:each) do
+      @contact = FactoryGirl.create(:contact, :first_name => "Bob", :last_name => "Dillion", :email => 'bob_dillion@example.com', :phone => '+1 123 456 789')
+    end
+    
+    it "should search first_name" do
+      Contact.text_search('Bob').should == [@contact]
+    end
+
+    it "should search last_name" do
+      Contact.text_search('Dillion').should == [@contact]
+    end
+    
+    it "should search whole name" do
+      Contact.text_search('Bob Dillion').should == [@contact]
+    end
+    
+    it "should search whole name reversed" do
+      Contact.text_search('Dillion Bob').should == [@contact]
+    end
+
+    it "should search email" do
+      Contact.text_search('example').should == [@contact]
+    end
+    
+    it "should search phone" do
+      Contact.text_search('123').should == [@contact]
+    end
+    
+    it "should not break with a single quote" do
+      contact2 = FactoryGirl.create(:contact, :first_name => "Shamus", :last_name => "O'Connell", :email => 'bob_dillion@example.com', :phone => '+1 123 456 789')
+      Contact.text_search("O'Connell").should == [contact2]
+    end
+    
+    it "should not break on special characters" do
+      Contact.text_search('@$%#^@!').should == []
+    end
+  
   end
 end

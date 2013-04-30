@@ -53,12 +53,13 @@ class Opportunity < ActiveRecord::Base
   scope :state, lambda { |filters|
     where('stage IN (?)' + (filters.delete('other') ? ' OR stage IS NULL' : ''), filters)
   }
-  scope :created_by, lambda { |user| where('user_id = ?', user.id) }
+  scope :created_by,  lambda { |user| where('user_id = ?', user.id) }
   scope :assigned_to, lambda { |user| where('assigned_to = ?', user.id) }
-  scope :won,      where("opportunities.stage = 'won'")
-  scope :lost,     where("opportunities.stage = 'lost'")
-  scope :not_lost, where("opportunities.stage <> 'lost'")
-  scope :pipeline, where("opportunities.stage IS NULL OR (opportunities.stage != 'won' AND opportunities.stage != 'lost')")
+  scope :won,         where("opportunities.stage = 'won'")
+  scope :lost,        where("opportunities.stage = 'lost'")
+  scope :not_lost,    where("opportunities.stage <> 'lost'")
+  scope :pipeline,    where("opportunities.stage IS NULL OR (opportunities.stage != 'won' AND opportunities.stage != 'lost')")
+  scope :unassigned,  where("opportunities.assigned_to IS NULL")
 
   # Search by name OR id
   scope :text_search, lambda { |query|
@@ -77,6 +78,7 @@ class Opportunity < ActiveRecord::Base
   }
 
   scope :by_closes_on, order(:closes_on)
+  scope :by_amount, order('opportunities.amount DESC')
 
   uses_user_permissions
   acts_as_commentable
@@ -86,6 +88,11 @@ class Opportunity < ActiveRecord::Base
   has_fields
   exportable
   sortable :by => [ "name ASC", "amount DESC", "amount*probability DESC", "probability DESC", "closes_on ASC", "created_at DESC", "updated_at DESC" ], :default => "created_at DESC"
+
+  has_ransackable_associations %w(account contacts tags activities emails comments)
+  ransack_can_autocomplete
+
+  validates :stage, :inclusion => { :in => Setting.unroll(:opportunity_stage).map{|s| s.last.to_s } }
 
   validates_presence_of :name, :message => :missing_opportunity_name
   validates_numericality_of [ :probability, :amount, :discount ], :allow_nil => true
@@ -101,8 +108,7 @@ class Opportunity < ActiveRecord::Base
 
   # Default values provided through class methods.
   #----------------------------------------------------------------------------
-  def self.per_page ; 20     ; end
-  def self.outline  ; "long" ; end
+  def self.per_page ; 20 ; end
 
   #----------------------------------------------------------------------------
   def weighted_amount
@@ -117,9 +123,10 @@ class Opportunity < ActiveRecord::Base
     account = Account.create_or_select_for(self, params[:account])
     self.account_opportunity = AccountOpportunity.new(:account => account, :opportunity => self) unless account.id.blank?
     self.account = account
-    self.contacts << Contact.find(params[:contact]) unless params[:contact].blank?
     self.campaign = Campaign.find(params[:campaign]) unless params[:campaign].blank?
-    self.save
+    result = self.save
+    self.contacts << Contact.find(params[:contact]) unless params[:contact].blank?
+    result
   end
 
   # Backend handler for [Update Opportunity] form (see opportunity/update).
@@ -134,6 +141,8 @@ class Opportunity < ActiveRecord::Base
       end
     end
     self.reload
+    # Must set access before user_ids, because user_ids= method depends on access value.
+    self.access = params[:opportunity][:access] if params[:opportunity][:access]
     self.attributes = params[:opportunity]
     self.save
   end

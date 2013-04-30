@@ -40,7 +40,7 @@ module ApplicationHelper
       if flash[type]
         html = content_tag(:div, h(flash[type]), :id => "flash")
         flash[type] = nil
-        return html << content_tag(:script, "crm.flash('#{type}', #{options[:sticky]})", :type => "text/javascript")
+        return html << content_tag(:script, "crm.flash('#{type}', #{options[:sticky]})".html_safe, :type => "text/javascript")
       end
     end
     content_tag(:p, nil, :id => "flash", :style => "display:none;")
@@ -73,13 +73,16 @@ module ApplicationHelper
 
   #----------------------------------------------------------------------------
   def load_select_popups_for(related, *assets)
-    js = assets.map do |asset|
-      render(:partial => "shared/select_popup", :locals => { :related => related, :popup => asset })
-    end.join
-
+    js = generate_js_for_popups(related, *assets)
     content_for(:javascript_epilogue) do
       raw "document.observe('dom:loaded', function() { #{js} });"
     end
+  end
+  
+  def generate_js_for_popups(related, *assets)
+    assets.map do |asset|
+      render(:partial => "shared/select_popup", :locals => { :related => related, :popup => asset })
+    end.join
   end
 
   # We need this because standard Rails [select] turns &#9733; into &amp;#9733;
@@ -100,7 +103,8 @@ module ApplicationHelper
     link_to(text,
       url + "#{url.include?('?') ? '&' : '?'}cancel=false" + related,
       :remote => true,
-      :onclick => "this.href = this.href.replace(/cancel=(true|false)/,'cancel='+ Element.visible('#{id}'));"
+      :onclick => "this.href = this.href.replace(/cancel=(true|false)/,'cancel='+ Element.visible('#{id}'));",
+      :class => options[:class]
     )
   end
 
@@ -125,7 +129,7 @@ module ApplicationHelper
   def link_to_delete(record, options = {})
     object = record.is_a?(Array) ? record.last : record
     confirm = options[:confirm] || nil
-    
+
     link_to(t(:delete) + "!",
       options[:url] || url_for(record),
       :method => :delete,
@@ -281,7 +285,7 @@ module ApplicationHelper
     "{ name: \"#{name.titleize}\", on_select: function() {" +
     remote_function(
       :url       => url || send("redraw_#{controller.controller_name}_path"),
-      :with      => "'#{option}=#{key}'",
+      :with      => "'#{option}=#{key}&query=' + $(\"query\").value",
       :condition => "$('#{option}').innerHTML != '#{name}'",
       :loading   => "$('#{option}').update('#{name}'); $('loading').show()",
       :complete  => "$('loading').hide()"
@@ -299,45 +303,21 @@ module ApplicationHelper
     end
   end
 
-  # Users can upload their avatar, and if it's missing we're going to use
-  # gravatar. For leads and contacts we always use gravatars.
+  # Entities can have associated avatars or gravatars. Only calls Gravatar
+  # in production env. Gravatar won't serve default images if they are not
+  # publically available: http://en.gravatar.com/site/implement/images
   #----------------------------------------------------------------------------
   def avatar_for(model, args = {})
     args = { :class => 'gravatar', :size => :large }.merge(args)
-    if model.avatar
+
+    if model.respond_to?(:avatar) and model.avatar.present?
       Avatar
       image_tag(model.avatar.image.url(args[:size]), args)
-    elsif model.email
-      # Gravatar requires '75x75' format, so convert symbols keys (e.g. :large)
-      if style_size = Avatar::STYLES[args[:size]]
-        args[:size] = style_size.sub(/\#$/,'')
-      end
-      # If we are passing an explicit w*h override (for uploaded avatars),
-      # then use that as the size.
-      if args[:width] && args[:height]
-        args[:size] = [:width, :height].map{|d|args[d]}.join("x")
-      end
-      gravatar_for(model, args)
     else
-      image_tag("avatar.jpg", args)
+      args = Avatar.size_from_style!(args) # convert size format :large => '75x75'
+      gravatar_image_tag(model.email, args)
     end
-  end
 
-  # Gravatar helper that adds default CSS class and image URL.
-  #----------------------------------------------------------------------------
-  def gravatar_for(model, args = {})
-    args = { :class => 'gravatar', :gravatar => { :default => default_avatar_url } }.merge(args)
-    gravatar_image_tag(model.email, args)
-  end
-
-  #----------------------------------------------------------------------------
-  def default_avatar_url
-    url = image_path('avatar.jpg')
-    if ActionController::Base.config.asset_host.present?
-      url
-    else
-      request.protocol + request.host_with_port + url
-    end
   end
 
   # Returns default permissions intro.
@@ -355,19 +335,14 @@ module ApplicationHelper
   def address_field(form, object, attribute, extra_styles)
     hint = "#{t(attribute)}..."
     if object.send(attribute).blank?
-      object.send("#{attribute}=", hint)
       form.text_field(attribute,
-        :hint    => true,
-        :style   => "margin-top: 6px; color:silver; #{extra_styles}",
-        :onfocus => "crm.hide_hint(this)",
-        :onblur  => "crm.show_hint(this, '#{hint}')"
+        :style   => "margin-top: 6px; #{extra_styles}",
+        :placeholder => hint
       )
     else
       form.text_field(attribute,
-        :hint    => false,
         :style   => "margin-top: 6px; #{extra_styles}",
-        :onfocus => "crm.hide_hint(this, '#{escape_javascript(object.send(attribute))}')",
-        :onblur  => "crm.show_hint(this, '#{hint}')"
+        :placeholder => hint
       )
     end
   end
@@ -391,6 +366,7 @@ module ApplicationHelper
     url_params.merge!(:query => params[:query]) unless params[:query].blank?
     url_params.merge!(:q => params[:q]) unless params[:q].blank?
     url_params.merge!(:view => @view) unless @view.blank? # tasks
+    url_params.merge!(:id => params[:id]) unless params[:id].blank?
 
     exports = %w(xls csv).map do |format|
       link_to(format.upcase, url_params.merge(:format => format), :title => I18n.t(:"to_#{format}")) unless action.to_s == "show"
@@ -407,24 +383,6 @@ module ApplicationHelper
     (exports + feeds + links).compact.join(' | ')
   end
 
-  def template_fields(f, type)
-    f.grouping_fields f.object.new_grouping, :object_name => "new_object_name", :child_index => "new_grouping" do |builder|
-      render('grouping_fields', :f => builder)
-    end
-  end
-
-  def link_to_add_fields(name, f, type)
-    new_object = f.object.send "build_#{type}"
-    fields = f.send("#{type}_fields", new_object, :child_index => "new_#{type}") do |builder|
-      render(type.to_s + "_fields", :f => builder)
-    end
-    link_to name, nil, :class => "add_fields", "data-field-type" => type, "data-content" => "#{fields}"
-  end
-
-  def link_to_remove_fields(name, f)
-    link_to image_tag('delete.png', :size => '16x16', :alt => name), nil, :class => "remove_fields"
-  end
-
   def user_options
     User.all.map {|u| [u.full_name, u.id]}
   end
@@ -432,4 +390,93 @@ module ApplicationHelper
   def group_options
     Group.all.map {|g| [g.name, g.id]}
   end
+
+  def list_of_entities
+    ENTITIES
+  end
+
+  def entity_filter_checkbox(name, value, count)
+    checked = (session["#{controller_name}_filter"].present? ? session["#{controller_name}_filter"].split(",").include?(value.to_s) : count.to_i > 0)
+    values = %Q{$$("input[name='#{name}[]']").findAll(function (el) { return el.checked }).pluck("value")}
+    params = h(%Q{"#{name}=" + #{values} + "&query=" + $("query").value})
+
+    onclick = remote_function(
+      :url      => { :action => :filter },
+      :with     => params,
+      :loading  => "$('loading').show()",
+      :complete => "$('loading').hide()"
+    )
+    check_box_tag("#{name}[]", value, checked, :id => value, :onclick => onclick)
+  end
+
+
+  # Create a column in the 'asset_attributes' table.
+  #----------------------------------------------------------------------------
+  def col(title, value, last = false, email = false)
+    # Parse and format urls as links.
+    fmt_value = (value.to_s || "").gsub("\n", "<br />")
+    fmt_value = if email
+        link_to_email(fmt_value)
+      else
+        fmt_value.gsub(/((http|ftp|https):\/\/[\w\-_]+(\.[\w\-_]+)+([\w\-\.,@?^=%&amp;:\/\+#]*[\w\-\@?^=%&amp;\/\+#])?)/, "<a href=\"\\1\">\\1</a>")
+      end
+    %Q^<th#{last ? " class=\"last\"" : ""}>#{title}:</th>
+  <td#{last ? " class=\"last\"" : ""}>#{fmt_value}</td>^.html_safe
+  end
+
+  #----------------------------------------------------------------------------
+  # Combines the 'subtitle' helper with the small info text on the same line.
+  def section_title(id, hidden = true, text = nil, info_text = nil)
+    text = id.to_s.split("_").last.capitalize if text == nil
+    content_tag("div", :class => "subtitle show_attributes") do
+      content = link_to("<small>#{ hidden ? "&#9658;" : "&#9660;" }</small> #{text}".html_safe,
+        url_for(:controller => :home, :action => :toggle, :id => id),
+        :remote  => true,
+        :onclick => "crm.flip_subtitle(this)"
+      )
+      content << content_tag("small", info_text.to_s, {:class => "subtitle_inline_info", :id => "#{id}_intro", :style => hidden ? "" : "display:none;"})
+    end
+  end
+
+  #----------------------------------------------------------------------------
+  # Return name of current view
+  def current_view_name
+    controller = params['controller']
+    action = (params['action'] == 'show') ? 'show' : 'index' # create update redraw filter index actions all use index view
+    current_user.pref[:"#{controller}_#{action}_view"]
+  end
+
+  #----------------------------------------------------------------------------
+  # Get template in current context with current view name
+  def template_for_current_view
+    controller = params['controller']
+    action = (params['action'] == 'show') ? 'show' : 'index' # create update redraw filter index actions all use index view
+    template = FatFreeCRM::ViewFactory.template_for_current_view(:controller => controller, :action => action, :name => current_view_name)
+    template
+  end
+
+  #----------------------------------------------------------------------------
+  # Generate buttons for available views given the current context
+  def view_buttons
+    controller = params['controller']
+    action = (params['action'] == 'show') ? 'show' : 'index' # create update redraw filter index actions all use index view
+    views = FatFreeCRM::ViewFactory.views_for(:controller => controller, :action => action)
+    return nil unless views.size > 1
+    content_tag :ul, :class => 'format-buttons' do
+      views.collect do |view|
+        classes = if (current_view_name == view.name) or (current_view_name == nil and view.template == nil) # nil indicates default template.
+            "#{view.name}-button active"
+          else
+            "#{view.name}-button"
+          end
+        content_tag(:li) do
+          url = (action == "index") ? send("redraw_#{controller}_path") : send("#{controller.singularize}_path")
+          link_to('#', :title => t(view.name, :default => view.title), :"data-view" => view.name, :"data-url" => url, :"data-context" => action, :class => classes) do
+            image_tag(view.icon || 'brief.png')
+          end
+        end
+      end.join('').html_safe
+    end
+  end
+
 end

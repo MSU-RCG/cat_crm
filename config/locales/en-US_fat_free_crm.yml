@@ -20,9 +20,11 @@ en-US:
   tab_tasks: Tasks
   tab_campaigns: Campaigns
   tab_leads: Leads
+
   tab_accounts: Accounts
   tab_contacts: Contacts
   tab_opportunities: Opportunities
+  tab_team: Team
 
   admin_tab_groups: Groups
   admin_tab_users: Users
@@ -34,7 +36,7 @@ en-US:
   affiliate: Affiliate
   competitor: Competitor
   customer: Customer
-  partner: Partneradm
+  partner: Partner
   reseller: Reseller
   vendor: Vendor
 
@@ -166,6 +168,17 @@ en-US:
           maxlength: "^%{field} is too long."
           endbeforestart: "^%{field} cannot end before it begins."
 
+    attribute_options:
+      opportunity:
+        stage:
+          prospecting: Prospecting
+          analysis: Analysis
+          presentation: Presentation
+          proposal: Proposal
+          negotiation: Negotiation
+          final_review: Final Review
+          won: Closed/Won
+          lost: Closed/Lost
 
   msg_account_suspended: User account has been suspended.
   password_reset_instruction: password reset instructions
@@ -227,8 +240,18 @@ en-US:
   option_target_revenue: target revenue
   option_updated_at: date updated
   show_per_page: Show %{number} %{models} per page using %{fmt} format.
-  sort_by: Sort %{models} by %{field}.
+  sort_by: Sort by %{field}
   sort_by_displaying: Sort %{models} by %{field} displaying first name %{position} last name.
+  entities_per_page: "%{entity} per page:"
+
+  # Views -> Switcher
+  contacts_index_long: Long format
+  contacts_index_brief: Brief format
+  contacts_index_full: Full format
+  opportunities_index_normal: Normal format
+  accounts_index_normal: Normal format
+  leads_index_normal: Normal format
+  campaigns_index_normal: Normal format
 
   # Views -> Profile.
   #----------------------------------------------------------------------------
@@ -270,7 +293,6 @@ en-US:
   born_on: Born on
   reports_to: Reports to
   access: Access
-  contacts_account: Contact's account
 
   # Views -> Authenticate.
   #----------------------------------------------------------------------------
@@ -283,9 +305,11 @@ en-US:
   # Views -> Accounts.
   #----------------------------------------------------------------------------
   account: Account
+  account_id: Account
   select_an_account: Select an Account
   account_small: account
   account_summary: Account Summary
+  account_categories: Account Categories
   accounts: Accounts
   accounts_options: Accounts Options
   accounts_small: accounts
@@ -310,6 +334,8 @@ en-US:
   shipping_address: Shipping address
   total_accounts: Total Accounts
   website: Website
+  account_with_title_department: %{title}, %{department} at %{account}
+  account_with_title: %{title} at %{account}
 
   # Views -> Campaigns.
   #----------------------------------------------------------------------------
@@ -322,6 +348,7 @@ en-US:
   campaign_small: campaign
   campaign_summary: Campaign Summary
   campaign_targets: Campaign Targets
+  campaign_statuses: Campaign Statuses
   campaigns: Campaigns
   campaigns_options: Campaigns Options
   campaigns_small: campaigns
@@ -382,6 +409,14 @@ en-US:
   web_presence: Web Presence
   web_presence_small: web presence
   works_at: "%{job_title} at %{company}"
+  general_info: General Information
+  show_general_info_small: Show general information for this contact.
+  show_extra_info_small: Show extra information for this contact.
+  tag_details: %{tag} Details
+  show_tag_info_small: Show %{tag} information for this contact.
+  shared_with_everyone: Shared with everyone
+  title: Title
+  subscriptions: Subscriptions
 
   # Views -> Leads.
   #----------------------------------------------------------------------------
@@ -399,6 +434,7 @@ en-US:
   lead_small: lead
   lead_status_small: lead status
   lead_summary: Lead Summary
+  lead_statuses: Lead Statuses
   leads: Leads
   leads_options: Leads Options
   leads_small: leads
@@ -410,6 +446,8 @@ en-US:
   source: Source
   status: Status
   total_leads: Total Leads
+  show_status_info_small: Show status information for this lead.
+  show_contact_info_small: Show contact information for this lead.
 
   # Views -> Opportunities.
   #----------------------------------------------------------------------------
@@ -434,6 +472,7 @@ en-US:
   opportunities_small: opportunities
   opportunity: Opportunity
   opportunity_small: opportunity
+  opportunity_stages: Opportunity Stages
   opportunity_summary: Opportunity At a Glance
   opportunity_summary_text: "%{amount} with %{discount} discount and %{probability} probability"
   past_due: past due, was expected to close %{value} ago
@@ -486,6 +525,11 @@ en-US:
   view_assigned_tasks: view assigned tasks
   view_pending_tasks: view pending tasks
 
+  # Views -> Team.
+  #----------------------------------------------------------------------------
+  unassigned_opportunities: Unassigned Opportunities
+  no_opportunities_found: There are currently no outstanding opportunities.
+
   # Views -> Home.
   #----------------------------------------------------------------------------
   action_completed: completed
@@ -511,6 +555,7 @@ en-US:
   subject_opportunity: opportunity
   subject_task: task
   subject_user: user
+  tag_list: Tags
   create_past_participle: Record Creations
   view_past_participle: Views
   update_past_participle: Updates
@@ -598,31 +643,12 @@ en-US:
   quick_find: Quick find
   welcome: Welcome
 
-  # Views -> Advanced Search.
+  # Advanced search
   accounts_advanced_search: Accounts Advanced search
   advanced_search: Advanced search
-  advanced_search_submit: Search
-  advanced_search_add_group: Add a group of filters
-  advanced_search_group_first: Show results where %{combinator} of the following match
-  advanced_search_group_rest: ...and where %{combinator} of the following match
-  advanced_search_add_condition: Add a filter
-  advanced_search_remove_condition: Remove filter
-
-  ransack:
-    predicates:
-      eq: is
-      not_eq: is not
-      lt: is less than
-      gt: is greater than
-      matches: matches
-      does_not_match: doesn't match
-      cont: contains
-      not_cont: doesn't contain
-      blank: is blank
-      present: is present
-      "null": is null
-      not_null: is not null
-
+  search_results_count:
+    one: Search found %{count} result.
+    other: Search found %{count} results.
 
   # Views -> Comments.
   #----------------------------------------------------------------------------
@@ -696,6 +722,11 @@ en-US:
     unset_html: %{attr} unset
     change_html: %{attr} changed from %{from} to %{to}
     anonymous: anonymous
+  account_contact_id: Account id
+  account_contact_name: Account name
+  user_id: User id
+  created_at: Created at
+  updated_at: Updated at
 
   # Export.
   #----------------------------------------------------------------------------
@@ -760,7 +791,7 @@ en-US:
   time:
     formats:
       mmddhhss: "%b %e at %l:%M%p"
-      mmddyyyy_hhmm: "%m/%d/%Y %l:%M %p"
+      mmddyyyy_hhmm: "%e %b %Y at %l:%M%p"
 
   # will_paginate translations copied for 'en-US'
   #----------------------------------------------------------------------------
@@ -793,8 +824,8 @@ en-US:
 
   select_or_create_tags: Select some tags, or create a new tag by pressing 'enter'.
 
-  restrict_by_tag: Restrict by Tag
-  restrict_by_tag_info: Only show fields for %{assets} that are tagged with
+  restrict_by_tag: 'Restrict by Tag:'
+  restrict_by_tag_info: (Only show fields for %{assets} that are tagged with the following)
   field_group_tag_restriction: This field group applies to %{assets} tagged with "%{tag}"
   field_group_unrestricted: This field group applies to all %{assets}
   field_group_confirm_delete: If a field group is deleted, any fields will be moved to the default field group.
@@ -855,23 +886,40 @@ en-US:
   # Form field types
   #----------------------------------------------------------------------------
   field_types:
-    string:      Short Answer
-    text:        Long Answer
-    select:      Select List
-    multiselect: Multi Select
-    radio:       Radio Buttons
-    boolean:     Checkbox
-    check_boxes: Checkbox List
-    date:        Date
-    datepair:    Date Pair
-    datetime:    Date & Time
-    datetimepair: Date & Time Pair
-    email:       Email Address
-    url:         URL
-    tel:         Phone Number
-    decimal:     Number (Decimal)
-    integer:     Number (Integer)
-    float:       Number (Floating Point)
+    string:
+      title:     Short Answer
+    text:
+      title:     Long Answer
+    select:
+      title:     Select List
+    multiselect:
+      title:     Multi Select
+    radio:
+      title:     Radio Buttons
+    boolean:
+      title:     Checkbox
+    check_boxes:
+      title:     Checkbox List
+    date:
+      title:     Date
+    date_pair:
+      title:     Date Pair
+    datetime:
+      title:     Date & Time
+    datetime_pair:
+      title:     Date & Time Pair
+    email:
+      title:     Email Address
+    url:
+      title:     URL
+    tel:
+      title:     Phone Number
+    decimal:
+      title:     Number (Decimal)
+    integer:
+      title:     Number (Integer)
+    float:
+      title:     Number (Floating Point)
 
   pair:
     start:       Start

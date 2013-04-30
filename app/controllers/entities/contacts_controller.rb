@@ -16,30 +16,26 @@
 #------------------------------------------------------------------------------
 
 class ContactsController < EntitiesController
-  before_filter :get_users, :only => [ :new, :create, :edit, :update ]
   before_filter :get_accounts, :only => [ :new, :create, :edit, :update ]
 
   # GET /contacts
   #----------------------------------------------------------------------------
   def index
-    @contacts = get_contacts(:page     => params[:page],
-                             :per_page => params[:per_page])
-    
+    @contacts = get_contacts(:page => params[:page], :per_page => params[:per_page])
+
     respond_with @contacts do |format|
       format.xls { render :layout => 'header' }
     end
   end
 
   # GET /contacts/1
+  # AJAX /contacts/1
   #----------------------------------------------------------------------------
   def show
-    respond_with(@contact) do |format|
-      format.html do
-        @stage = Setting.unroll(:opportunity_stage)
-        @comment = Comment.new
-        @timeline = timeline(@contact)
-      end
-    end
+    @stage = Setting.unroll(:opportunity_stage)
+    @comment = Comment.new
+    @timeline = timeline(@contact)
+    respond_with(@contact)
   end
 
   # GET /contacts/new
@@ -99,7 +95,6 @@ class ContactsController < EntitiesController
   def update
     respond_with(@contact) do |format|
       unless @contact.update_with_account_and_permissions(params)
-        @users = User.except(current_user)
         if @contact.account
           @account = Account.find(@contact.account.id)
         else
@@ -132,22 +127,10 @@ class ContactsController < EntitiesController
   #----------------------------------------------------------------------------
   # Handled by ApplicationController :auto_complete
 
-  # GET /contacts/options                                                  AJAX
-  #----------------------------------------------------------------------------
-  def options
-    unless params[:cancel].true?
-      @per_page = current_user.pref[:contacts_per_page] || Contact.per_page
-      @outline  = current_user.pref[:contacts_outline]  || Contact.outline
-      @sort_by  = current_user.pref[:contacts_sort_by]  || Contact.sort_by
-      @naming   = current_user.pref[:contacts_naming]   || Contact.first_name_position
-    end
-  end
-
   # POST /contacts/redraw                                                  AJAX
   #----------------------------------------------------------------------------
   def redraw
     current_user.pref[:contacts_per_page] = params[:per_page] if params[:per_page]
-    current_user.pref[:contacts_outline]  = params[:outline]  if params[:outline]
 
     # Sorting and naming only: set the same option for Leads if the hasn't been set yet.
     if params[:sort_by]
@@ -161,8 +144,12 @@ class ContactsController < EntitiesController
       current_user.pref[:leads_naming] ||= params[:naming]
     end
 
-    @contacts = get_contacts(:page => 1) # Start on the first page.
-    render :index
+    @contacts = get_contacts(:page => 1, :per_page => params[:per_page]) # Start on the first page.
+    set_options # Refresh options
+    
+    respond_with(@contacts) do |format|
+      format.js { render :index }
+    end
   end
 
   private
@@ -172,6 +159,11 @@ class ContactsController < EntitiesController
   #----------------------------------------------------------------------------
   def get_accounts
     @accounts = Account.my.order('name')
+  end
+
+  def set_options
+    super
+    @naming = (current_user.pref[:contacts_naming]   || Contact.first_name_position) unless params[:cancel].true?
   end
 
   #----------------------------------------------------------------------------

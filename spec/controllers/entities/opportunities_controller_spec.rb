@@ -79,7 +79,7 @@ describe OpportunitiesController do
         assigns[:opportunities].should == []
         response.should render_template("opportunities/index")
       end
-      
+
       it "should reset current_page when query is altered" do
         session[:opportunities_current_page] = 42
         session[:opportunities_current_query] = "bill"
@@ -222,13 +222,11 @@ describe OpportunitiesController do
     it "should expose a new opportunity as @opportunity and render [new] template" do
       @opportunity = Opportunity.new(:user => current_user, :access => Setting.default_access, :stage => "prospecting")
       @account = Account.new(:user => current_user, :access => Setting.default_access)
-      @users = [ FactoryGirl.create(:user) ]
       @accounts = [ FactoryGirl.create(:account, :user => current_user) ]
 
       xhr :get, :new
       assigns[:opportunity].attributes.should == @opportunity.attributes
       assigns[:account].attributes.should == @account.attributes
-      assigns[:users].should == @users
       assigns[:accounts].should == @accounts
       response.should render_template("opportunities/new")
     end
@@ -270,7 +268,6 @@ describe OpportunitiesController do
       @account = FactoryGirl.create(:account, :user => current_user)
       @opportunity = FactoryGirl.create(:opportunity, :id => 42, :user => current_user, :campaign => nil,
                              :account => @account)
-      @users = [ FactoryGirl.create(:user) ]
       @stage = Setting.unroll(:opportunity_stage)
       @accounts = [ @account ]
 
@@ -279,7 +276,6 @@ describe OpportunitiesController do
       assigns[:opportunity].should == @opportunity
       assigns[:account].attributes.should == @opportunity.account.attributes
       assigns[:accounts].should == @accounts
-      assigns[:users].should == @users
       assigns[:stage].should == @stage
       assigns[:previous].should == nil
       response.should render_template("opportunities/edit")
@@ -439,7 +435,7 @@ describe OpportunitiesController do
 
         xhr :post, :create, :opportunity => { :name => "Opportunity Knocks" }, :account => { :name => "My Account" }, :comment_body => "Awesome comment is awesome"
         @opportunity.reload.comments.map(&:comment).should include("Awesome comment is awesome")
-      end      
+      end
     end
 
     describe "with invalid params" do
@@ -450,13 +446,11 @@ describe OpportunitiesController do
                                      :account => @account)
         Opportunity.stub!(:new).and_return(@opportunity)
         @stage = Setting.unroll(:opportunity_stage)
-        @users = [ FactoryGirl.create(:user) ]
         @accounts = [ FactoryGirl.create(:account, :user => current_user) ]
 
         # Expect to redraw [create] form with blank account.
         xhr :post, :create, :opportunity => {}, :account => { :user_id => current_user.id }
         assigns(:opportunity).should == @opportunity
-        assigns(:users).should == @users
         assigns(:account).attributes.should == @account.attributes
         assigns(:accounts).should == @accounts
         response.should render_template("opportunities/create")
@@ -468,12 +462,10 @@ describe OpportunitiesController do
                                      :account => @account)
         Opportunity.stub!(:new).and_return(@opportunity)
         @stage = Setting.unroll(:opportunity_stage)
-        @users = [ FactoryGirl.create(:user) ]
 
         # Expect to redraw [create] form with selected account.
         xhr :post, :create, :opportunity => {}, :account => { :id => 42, :user_id => current_user.id }
         assigns(:opportunity).should == @opportunity
-        assigns(:users).should == @users
         assigns(:account).should == @account
         assigns(:accounts).should == [ @account ]
         response.should render_template("opportunities/create")
@@ -596,7 +588,7 @@ describe OpportunitiesController do
       describe "updating campaign revenue (same campaign)" do
         it "should add to actual revenue when opportunity is closed/won" do
           @campaign = FactoryGirl.create(:campaign, :revenue => 1000)
-          @opportunity = FactoryGirl.create(:opportunity, :campaign => @campaign, :stage => nil, :amount => 1100, :discount => 100)
+          @opportunity = FactoryGirl.create(:opportunity, :campaign => @campaign, :stage => 'prospecting', :amount => 1100, :discount => 100)
 
           xhr :put, :update, :id => @opportunity, :opportunity => { :stage => "won" }, :account => { :name => "Test Account" }
           @campaign.reload.revenue.to_i.should == 2000 # 1000 -> 2000
@@ -607,13 +599,13 @@ describe OpportunitiesController do
           @opportunity = FactoryGirl.create(:opportunity, :campaign => @campaign, :stage => "won", :amount => 1100, :discount => 100)
           # @campaign.revenue is now $2000 since we created winning opportunity.
 
-          xhr :put, :update, :id => @opportunity, :opportunity => { :stage => nil }, :account => { :name => "Test Account" }
+          xhr :put, :update, :id => @opportunity, :opportunity => { :stage => 'prospecting' }, :account => { :name => "Test Account" }
           @campaign.reload.revenue.to_i.should == 1000 # Should be adjusted back to $1000.
         end
 
         it "should not update actual revenue when opportunity is not closed/won" do
           @campaign = FactoryGirl.create(:campaign, :revenue => 1000)
-          @opportunity = FactoryGirl.create(:opportunity, :campaign => @campaign, :stage => nil, :amount => 1100, :discount => 100)
+          @opportunity = FactoryGirl.create(:opportunity, :campaign => @campaign, :stage => 'prospecting', :amount => 1100, :discount => 100)
 
           xhr :put, :update, :id => @opportunity, :opportunity => { :stage => "lost" }, :account => { :name => "Test Account" }
           @campaign.reload.revenue.to_i.should == 1000 # Stays the same.
@@ -623,7 +615,7 @@ describe OpportunitiesController do
       describe "updating campaign revenue (diferent campaigns)" do
         it "should update newly assigned campaign when opportunity is closed/won" do
           @campaigns = { :old => FactoryGirl.create(:campaign, :revenue => 1000), :new => FactoryGirl.create(:campaign, :revenue => 1000) }
-          @opportunity = FactoryGirl.create(:opportunity, :campaign => @campaigns[:old], :stage => nil, :amount => 1100, :discount => 100)
+          @opportunity = FactoryGirl.create(:opportunity, :campaign => @campaigns[:old], :stage => 'prospecting', :amount => 1100, :discount => 100)
 
           xhr :put, :update, :id => @opportunity, :opportunity => { :stage => "won", :campaign_id => @campaigns[:new].id }, :account => { :name => "Test Account" }
 
@@ -636,14 +628,14 @@ describe OpportunitiesController do
           @opportunity = FactoryGirl.create(:opportunity, :campaign => @campaigns[:old], :stage => "won", :amount => 1100, :discount => 100)
           # @campaign.revenue is now $2000 since we created winning opportunity.
 
-          xhr :put, :update, :id => @opportunity, :opportunity => { :stage => nil, :campaign_id => @campaigns[:new].id }, :account => { :name => "Test Account" }
+          xhr :put, :update, :id => @opportunity, :opportunity => { :stage => 'prospecting', :campaign_id => @campaigns[:new].id }, :account => { :name => "Test Account" }
           @campaigns[:old].reload.revenue.to_i.should == 1000 # Should be adjusted back to $1000.
           @campaigns[:new].reload.revenue.to_i.should == 1000 # Stays the same.
         end
 
         it "should not update campaigns when opportunity is not closed/won" do
           @campaigns = { :old => FactoryGirl.create(:campaign, :revenue => 1000), :new => FactoryGirl.create(:campaign, :revenue => 1000) }
-          @opportunity = FactoryGirl.create(:opportunity, :campaign => @campaigns[:old], :stage => nil, :amount => 1100, :discount => 100)
+          @opportunity = FactoryGirl.create(:opportunity, :campaign => @campaigns[:old], :stage => 'prospecting', :amount => 1100, :discount => 100)
 
           xhr :put, :update, :id => @opportunity, :opportunity => { :stage => "lost", :campaign_id => @campaigns[:new].id }, :account => { :name => "Test Account" }
           @campaigns[:old].reload.revenue.to_i.should == 1000 # Stays the same.
@@ -867,40 +859,18 @@ describe OpportunitiesController do
     it_should_behave_like("auto complete")
   end
 
-  # GET /opportunities/options                                             AJAX
-  #----------------------------------------------------------------------------
-  describe "responding to GET options" do
-    it "should set current user preferences when showing options" do
-      @per_page = FactoryGirl.create(:preference, :user => current_user, :name => "opportunities_per_page", :value => Base64.encode64(Marshal.dump(42)))
-      @outline  = FactoryGirl.create(:preference, :user => current_user, :name => "opportunities_outline",  :value => Base64.encode64(Marshal.dump("option_long")))
-      @sort_by  = FactoryGirl.create(:preference, :user => current_user, :name => "opportunities_sort_by",  :value => Base64.encode64(Marshal.dump("opportunities.name ASC")))
-
-      xhr :get, :options
-      assigns[:per_page].should == 42
-      assigns[:outline].should  == "option_long"
-      assigns[:sort_by].should  == "opportunities.name ASC"
-    end
-
-    it "should not assign instance variables when hiding options" do
-      xhr :get, :options, :cancel => "true"
-      assigns[:per_page].should == nil
-      assigns[:outline].should  == nil
-      assigns[:sort_by].should  == nil
-    end
-  end
-
   # POST /opportunities/redraw                                             AJAX
   #----------------------------------------------------------------------------
   describe "responding to POST redraw" do
     it "should save user selected opportunity preference" do
-      xhr :post, :redraw, :per_page => 42, :outline => "brief", :sort_by => "name"
+      xhr :post, :redraw, :per_page => 42, :view => "brief", :sort_by => "name"
       current_user.preference[:opportunities_per_page].should == "42"
-      current_user.preference[:opportunities_outline].should  == "brief"
+      current_user.preference[:opportunities_index_view].should  == "brief"
       current_user.preference[:opportunities_sort_by].should  == "opportunities.name ASC"
     end
 
     it "should reset current page to 1" do
-      xhr :post, :redraw, :per_page => 42, :outline => "brief", :sort_by => "name"
+      xhr :post, :redraw, :per_page => 42, :view => "brief", :sort_by => "name"
       session[:opportunities_current_page].should == 1
     end
 

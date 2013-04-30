@@ -45,14 +45,14 @@ var crm = {
   hide_form: function(id) {
     if($('facebook-list')) $('facebook-list').remove();
     var arrow = $(id + "_arrow") || $("arrow");
-    arrow.update(this.COLLAPSED);
+    if (arrow) arrow.update(this.COLLAPSED);
     $(id).hide().update("").setStyle({height: 'auto'});
   },
 
   //----------------------------------------------------------------------------
   show_form: function(id) {
     var arrow = $(id + "_arrow") || $("arrow");
-    arrow.update(this.EXPANDED);
+    if (arrow) arrow.update(this.EXPANDED);
     Effect.BlindDown(id, { duration: 0.25, afterFinish: function() {
         var input = $(id).down("input[type=text]");
         if (input) input.focus();
@@ -322,6 +322,7 @@ var crm = {
   },
 
   //----------------------------------------------------------------------------
+  // Will be deprecated soon: html5 placeholder replaced it on address fields
   show_hint: function(el, hint) {
     if (el.value == '') {
       el.value = hint;
@@ -331,6 +332,7 @@ var crm = {
   },
 
   //----------------------------------------------------------------------------
+  // Will be deprecated soon: html5 placeholder replaced it on address fields
   hide_hint: function(el, value) {
     if (arguments.length == 2) {
       el.value = value;
@@ -344,6 +346,7 @@ var crm = {
   },
 
   //----------------------------------------------------------------------------
+  // Will be deprecated soon: html5 placeholder replaced it on address fields
   clear_all_hints: function() {
     $$("input[hint=true]").each( function(field) {
       field.value = '';
@@ -372,7 +375,7 @@ var crm = {
   },
 
   //----------------------------------------------------------------------------
-  
+
   search: function(query, controller) {
     var list = controller;          // ex. "users"
     if (list.indexOf("/") >= 0) {   // ex. "admin/users"
@@ -415,6 +418,20 @@ var crm = {
     this.autocompleter = new Ajax.Autocompleter("auto_complete_query", "auto_complete_dropdown", this.base_url + "/" + controller + "/auto_complete", {
       frequency: 0.25,
       parameters: (related) ? ('related=' + related) : null,
+      onShow: function(element, update) {
+        // overridding onShow to include a fix for IE browsers
+        // see https://prototype.lighthouseapp.com/projects/8887/tickets/263-displayinline-fixes-positioning-of-autocomplete-results-div-in-ie8
+        update.style.display = (Prototype.Browser.IE) ? 'inline':'absolute';
+        // below is default onShow from controls.js
+        if(!update.style.position || update.style.position=='absolute') {
+          update.style.position = 'absolute';
+          Position.clone(element, update, {
+            setHeight: false,
+            offsetTop: element.offsetHeight
+          });
+        }
+        Effect.Appear(update,{duration:0.15});
+      },
       afterUpdateElement: function(text, el) {
         if (el.id) {      // Autocomplete entry found.
           if (related) {  // Attach to related asset.
@@ -460,6 +477,11 @@ document.observe("dom:loaded", function() {
         new Ajax.Request(el.href, { method: 'get' });
         e.stop();
       }
+      if (el.match('.per_page_options a')) {
+        el.up('.per_page_options').update(createSpinner());
+        new Ajax.Request(el.href, { method: 'post' });
+        e.stop();
+      }
     });
   }
 });
@@ -481,24 +503,4 @@ document.on("click", "*[data-tab-class]", function(event, element) {
 
   $(klass + "_section").show();
   element.addClassName('selected');
-});
-
-// For advanced search we show a spinner and dim the page when loading results
-// This method undoes that when the results are returned. Ideally, this should
-// be converted to jQuery (using the 'live' method) and put in search.js.coffee
-// but we have to move to jquery-ujs first as all ajax events are current
-// registered with prototype
-document.observe("dom:loaded", function() { 
-  Event.observe(document.body, 'ajax:complete', function(e, el) {
-    if (el = e.findElement('.advanced_search')) {
-      $("loading").hide();
-      $("advanced_search").setStyle({ opacity: 1 });
-    }
-  });
-  Event.observe(document.body, 'ajax:failure', function(e, el) {
-    if (el = e.findElement('.advanced_search')) {
-      $('flash').update('An error occurred whilst trying to search'); // no i18n
-      crm.flash('error');
-    }
-  });
 });

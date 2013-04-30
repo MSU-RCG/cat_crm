@@ -11,7 +11,7 @@ gem 'pg', '~> 0.13.2'
 gem 'bundler_local_development', :group => :development, :require => false
 begin
   require 'bundler_local_development'
-  Bundler.development_gems = [/^ffcrm_/]
+  Bundler.development_gems = [/^ffcrm_/, /ransack/]
 rescue LoadError
 end
 
@@ -40,11 +40,15 @@ gem 'premailer', :require => false
 # Remove fat_free_crm dependency, to stop it from being auto-required too early.
 remove 'fat_free_crm'
 
-group :development, :test do
+group :development do
+  gem 'thin'
+  gem 'quiet_assets'
   # Uncomment the following two gems to deploy via Capistrano
   gem 'capistrano'
   gem 'capistrano_colors'
+end
 
+group :development, :test do
   gem 'rspec-rails', '~> 2.9.0'
   gem 'headless'
   unless ENV["CI"]
@@ -55,10 +59,8 @@ group :development, :test do
 end
 
 group :test do
-  gem 'capybara'
-  gem 'spork'
+  gem 'capybara', '~> 1.1' # v2 and up is not r1.8 compatible.
   gem 'database_cleaner'
-  gem 'fuubar'
   gem "acts_as_fu", "~> 0.0.8"
 
   if RUBY_VERSION.to_f >= 1.9
@@ -78,9 +80,11 @@ end
 group :assets do
   gem 'sass-rails',   '~> 3.2.3'
   gem 'coffee-rails', '~> 3.2.1'
-  gem 'execjs'
-  gem 'therubyracer', :platform => :ruby  # C Ruby (MRI) or Rubinius, but NOT Windows
   gem 'uglifier',     '>= 1.0.3'
+  gem 'execjs'
+  unless ENV["CI"]
+    gem 'therubyracer', :platform => :ruby
+  end
 end
 
 gem 'turbo-sprockets-rails3'

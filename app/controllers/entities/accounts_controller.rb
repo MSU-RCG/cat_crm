@@ -17,27 +17,25 @@
 
 class AccountsController < EntitiesController
   before_filter :get_data_for_sidebar, :only => :index
-  
+
   # GET /accounts
   #----------------------------------------------------------------------------
   def index
-    @accounts = get_accounts(:page => params[:page])
-    
+    @accounts = get_accounts(:page => params[:page], :per_page => params[:per_page])
+
     respond_with @accounts do |format|
       format.xls { render :layout => 'header' }
     end
   end
 
   # GET /accounts/1
+  # AJAX /accounts/1
   #----------------------------------------------------------------------------
   def show
-    respond_with(@account) do |format|
-      format.html do
-        @stage = Setting.unroll(:opportunity_stage)
-        @comment = Comment.new
-        @timeline = timeline(@account)
-      end
-    end
+    @stage = Setting.unroll(:opportunity_stage)
+    @comment = Comment.new
+    @timeline = timeline(@account)
+    respond_with(@account)
   end
 
   # GET /accounts/new
@@ -82,11 +80,9 @@ class AccountsController < EntitiesController
   #----------------------------------------------------------------------------
   def update
     respond_with(@account) do |format|
-      if @account.update_attributes(params[:account])
-        get_data_for_sidebar
-      else
-        @users = User.except(current_user) # Need it to redraw [Edit Account] form.
-      end
+      # Must set access before user_ids, because user_ids= method depends on access value.
+      @account.access = params[:account][:access] if params[:account][:access]
+      get_data_for_sidebar if @account.update_attributes(params[:account])
     end
   end
 
@@ -113,32 +109,28 @@ class AccountsController < EntitiesController
   #----------------------------------------------------------------------------
   # Handled by ApplicationController :auto_complete
 
-  # GET /accounts/options                                                  AJAX
-  #----------------------------------------------------------------------------
-  def options
-    unless params[:cancel].true?
-      @per_page = current_user.pref[:accounts_per_page] || Account.per_page
-      @outline  = current_user.pref[:accounts_outline]  || Account.outline
-      @sort_by  = current_user.pref[:accounts_sort_by]  || Account.sort_by
-    end
-  end
-
   # POST /accounts/redraw                                                  AJAX
   #----------------------------------------------------------------------------
   def redraw
     current_user.pref[:accounts_per_page] = params[:per_page] if params[:per_page]
-    current_user.pref[:accounts_outline]  = params[:outline]  if params[:outline]
     current_user.pref[:accounts_sort_by]  = Account::sort_by_map[params[:sort_by]] if params[:sort_by]
-    @accounts = get_accounts(:page => 1)
-    render :index
+    @accounts = get_accounts(:page => 1, :per_page => params[:per_page])
+    set_options # Refresh options
+    
+    respond_with(@accounts) do |format|
+      format.js { render :index }
+    end
   end
 
   # POST /accounts/filter                                                  AJAX
   #----------------------------------------------------------------------------
   def filter
     session[:accounts_filter] = params[:category]
-    @accounts = get_accounts(:page => 1)
-    render :index
+    @accounts = get_accounts(:page => 1, :per_page => params[:per_page])
+    
+    respond_with(@accounts) do |format|
+      format.js { render :index }
+    end
   end
 
 private

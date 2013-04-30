@@ -65,6 +65,7 @@ class User < ActiveRecord::Base
   has_many    :leads
   has_many    :contacts
   has_many    :opportunities
+  has_many    :assigned_opportunities, :class_name => 'Opportunity', :foreign_key => 'assigned_to'
   has_many    :permissions, :dependent => :destroy
   has_many    :preferences, :dependent => :destroy
   has_and_belongs_to_many :groups
@@ -78,12 +79,15 @@ class User < ActiveRecord::Base
 
   scope :text_search, lambda { |query|
     query = query.gsub(/[^\w\s\-\.'\p{L}]/u, '').strip
-    where('upper(username) LIKE upper(:s) OR upper(first_name) LIKE upper(:s) OR upper(last_name) LIKE upper(:s)', :s => "#{query}%")
+    where('upper(username) LIKE upper(:s) OR upper(first_name) LIKE upper(:s) OR upper(last_name) LIKE upper(:s)', :s => "%#{query}%")
   }
 
   scope :my, lambda {
     accessible_by(User.current_ability)
   }
+
+  scope :have_assigned_opportunities, joins("INNER JOIN opportunities ON users.id = opportunities.assigned_to").
+                                      where("opportunities.stage <> 'lost' AND opportunities.stage <> 'won'")
 
   acts_as_authentic do |c|
     c.session_class = Authentication
@@ -178,8 +182,14 @@ class User < ActiveRecord::Base
     artifacts == 0
   end
 
-  def self.current_ability
-    @current_ability ||= Ability.new(User.current_user)
-  end
+  # Define class methods
+  #----------------------------------------------------------------------------
+  class << self
 
+    def current_ability
+      Ability.new(User.current_user)
+    end
+
+  end
+  
 end

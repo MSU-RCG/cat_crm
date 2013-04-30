@@ -45,12 +45,11 @@ class TasksController < ApplicationController
   def new
     @view = params[:view] || "pending"
     @task = Task.new
-    @users = User.except(current_user).by_name
     @bucket = Setting.unroll(:task_bucket)[1..-1] << [ t(:due_specific_date, :default => 'On Specific Date...'), :specific_time ]
     @category = Setting.unroll(:task_category)
 
     if params[:related]
-      model, id = params[:related].split('_')
+      model, id = params[:related].split(/_(\d+)/)
       if related = model.classify.constantize.my.find_by_id(id)
         instance_variable_set("@asset", related)
       else
@@ -66,7 +65,6 @@ class TasksController < ApplicationController
   def edit
     @view = params[:view] || "pending"
     @task = Task.tracked_by(current_user).find(params[:id])
-    @users = User.except(current_user).by_name
     @bucket = Setting.unroll(:task_bucket)[1..-1] << [ t(:due_specific_date, :default => 'On Specific Date...'), :specific_time ]
     @category = Setting.unroll(:task_category)
     @asset = @task.asset if @task.asset_id?

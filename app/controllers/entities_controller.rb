@@ -18,12 +18,16 @@
 class EntitiesController < ApplicationController
   before_filter :require_user
   before_filter :set_current_tab, :only => [ :index, :show ]
+  before_filter :set_view, :only => [ :index, :show, :redraw ]
+  
+  before_filter :set_options, :only => :index
+  before_filter :load_ransack_search, :only => :index
 
   load_and_authorize_resource
 
   after_filter :update_recently_viewed, :only => :show
 
-  helper_method :entity, :entities, :search
+  helper_method :entity, :entities
 
   # Common attach handler for all core controllers.
   #----------------------------------------------------------------------------
@@ -120,20 +124,21 @@ protected
     instance_variable_get("@#{controller_name}") || klass.my
   end
   
-private
-
-  #----------------------------------------------------------------------------
-  def get_users
-    @users ||= User.except(current_user)
+  def set_options
+    unless params[:cancel].true?
+      klass = controller_name.classify.constantize
+      action = params['action']
+      @per_page = current_user.pref[:"#{controller_name}_per_page"] || klass.per_page
+      @sort_by  = current_user.pref[:"#{controller_name}_sort_by"]  || klass.sort_by
+    end
   end
 
-  #----------------------------------------------------------------------------
-  def search
-    @search ||= begin
-      search = klass.search(params[:q])
-      search.build_grouping unless search.groupings.any?
-      search
-    end
+private
+
+  def ransack_search
+    @ransack_search ||= load_ransack_search
+    @ransack_search.build_sort if @ransack_search.sorts.empty?
+    @ransack_search
   end
 
   # Get list of records for a given model class.
@@ -143,32 +148,38 @@ private
     self.current_page  = options[:page]                        if options[:page]
     query, tags        = parse_query_and_tags(options[:query])
     self.current_query = query
-
-    order = current_user.pref[:"#{controller_name}_sort_by"] || klass.sort_by
-    
-    per_page = if options[:per_page]
-      options[:per_page] == 'all' ? search.result.count : options[:per_page]
-    else
-      current_user.pref[:"#{controller_name}_per_page"]
-    end
-    
-    pages = {
-      :page     => current_page,
-      :per_page => per_page
-    }
-
-    # Use default processing if no hooks are present. Note that comma-delimited
-    # export includes deleted records, and the pagination is enabled only for
-    # plain HTTP, Ajax and XML API requests.
+    advanced_search = params[:q].present?
     wants = request.format
-    filter = session[:"#{controller_name}_filter"].to_s.split(',')
 
-    scope = entities.merge(search.result)
-    scope = scope.state(filter)                   if filter.present?
+    scope = entities.merge(ransack_search.result(:distinct => true))
+
+    # Get filter from session, unless running an advanced search
+    unless advanced_search
+      filter = session[:"#{controller_name}_filter"].to_s.split(',')
+      scope = scope.state(filter) if filter.present?
+    end
+
     scope = scope.text_search(query)              if query.present?
     scope = scope.tagged_with(tags, :on => :tags) if tags.present?
-    scope = scope.order(order)
-    scope = scope.paginate(pages)                 if wants.html? || wants.js? || wants.xml?
+
+    # Ignore this order when doing advanced search
+    unless advanced_search
+      order = current_user.pref[:"#{controller_name}_sort_by"] || klass.sort_by
+      scope = scope.order(order)
+    end
+
+    @search_results_count = scope.count
+
+    # Pagination is disabled for xls and csv requests
+    unless (wants.xls? || wants.csv?)
+      per_page = if options[:per_page]
+        options[:per_page] == 'all' ? @search_results_count : options[:per_page]
+      else
+        current_user.pref[:"#{controller_name}_per_page"]
+      end
+      scope = scope.paginate(:page => current_page, :per_page => per_page)
+    end
+    
     scope
   end
 
@@ -198,5 +209,15 @@ private
   #----------------------------------------------------------------------------
   def timeline(asset)
     (asset.comments + asset.emails).sort { |x, y| y.created_at <=> x.created_at }
+  end
+
+  # Sets the current template view for entities in this context
+  #----------------------------------------------------------------------------
+  def set_view
+    if params['view']
+      controller = params['controller']
+      action = (params['action'] == 'show') ? 'show' : 'index' # create update redraw filter index actions all use index view
+      current_user.pref[:"#{controller}_#{action}_view"] = params['view']
+    end
   end
 end

@@ -35,5 +35,6 @@ if defined?(FatFreeCRM::Application)
 
     # Expands the lines which load the assets
     config.assets.debug = true
+
   end
 end

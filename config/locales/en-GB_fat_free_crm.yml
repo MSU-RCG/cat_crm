@@ -22,7 +22,9 @@ en-GB:
   tab_accounts: Accounts
   tab_contacts: Contacts
   tab_opportunities: Opportunities
+  tab_team: Team
 
+  admin_tab_groups: Groups
   admin_tab_users: Users
   admin_tab_fields: Custom Fields
   admin_tab_tags: Tags
@@ -478,6 +480,11 @@ en-GB:
   view_assigned_tasks: view assigned tasks
   view_pending_tasks: view pending tasks
 
+  # Views -> Team.
+  #----------------------------------------------------------------------------
+  unassigned_opportunities: Unassigned Opportunities
+  no_opportunities_found: There are currently no outstanding opportunities.
+
   # Views -> Home.
   #----------------------------------------------------------------------------
   action_completed: completed
@@ -641,6 +648,16 @@ en-GB:
   back_to_crm: Back to Fat Free CRM
   crm_admin_page: Fat Free CRM Administration
 
+  # Views -> Admin -> Groups
+  #----------------------------------------------------------------------------
+  create_group: Create Group
+  save_group: Save Group
+  group_members: members
+  groups: Groups
+  groups_small: groups
+  group_small: group
+  confirm_group_delete: Are you sure you wish to delete this group? There are %{count} items that still reference it.
+
   # Views -> Admin -> Users.
   #----------------------------------------------------------------------------
   approve: Approve
@@ -738,7 +755,7 @@ en-GB:
   time:
     formats:
       mmddhhss: "%e %b at %l:%M%p"
-      mmddyyyy_hhmm: "%Y-%m-%d %H:%M"
+      mmddyyyy_hhmm: "%e %b %Y at %l:%M%p"
 
   # will_paginate translations copied from 'en-US'
   #----------------------------------------------------------------------------
@@ -746,7 +763,6 @@ en-GB:
     previous_label: "&#8592; Previous"
     next_label: "Next &#8594;"
     page_gap: "&hellip;"
-
     page_entries_info:
       single_page:
         zero: "No %{plural} found"
@@ -834,18 +850,37 @@ en-GB:
   # Form field types
   #----------------------------------------------------------------------------
   field_types:
-    string:      Short Answer
-    text:        Long Answer
-    select:      Select List
-    multiselect: Multi Select
-    radio:       Radio Buttons
-    boolean:     Checkbox
-    check_boxes: Checkbox List
-    date:        Date
-    datetime:    Date & Time
-    email:       Email Address
-    url:         URL
-    tel:         Phone Number
-    decimal:     Number (Decimal)
-    integer:     Number (Integer)
-    float:       Number (Floating Point)
+    string:
+      title:     Short Answer
+    text:
+      title:     Long Answer
+    select:
+      title:     Select List
+    multiselect: 
+      title:     Multi Select
+    radio:
+      title:     Radio Buttons
+    boolean:
+      title:     Checkbox
+    check_boxes:
+      title:     Checkbox List
+    date:
+      title:     Date
+    date_pair:
+      title:     Date Pair
+    datetime:
+      title:     Date & Time
+    datetime_pair:
+      title:     Date & Time Pair
+    email:
+      title:     Email Address
+    url:
+      title:     URL
+    tel:
+      title:     Phone Number
+    decimal:
+      title:     Number (Decimal)
+    integer:
+      title:     Number (Integer)
+    float:
+      title:     Number (Floating Point)

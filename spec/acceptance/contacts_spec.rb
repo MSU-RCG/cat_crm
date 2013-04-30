@@ -17,13 +17,13 @@ feature 'Contacts', %q{
     page.should have_content('Test Subject #1')
     page.should have_content('Test Subject #2')
     page.should have_content('Test Subject #3')
-    page.should have_content('Search contacts')
     page.should have_content('Create Contact')
   end
 
   scenario 'should create a contact', :js => true do
     visit contacts_page
     click_link 'Create Contact'
+    page.should have_selector('#contact_first_name', :visible => true)
     fill_in 'contact_first_name', :with => 'Testy'
     fill_in 'contact_last_name', :with => 'McTest'
     fill_in 'contact_email', :with => "testy.mctest@example.com"
@@ -38,7 +38,6 @@ feature 'Contacts', %q{
 
     click_link "Dashboard"
     page.should have_content('Bill Murray created contact Testy McTest')
-    page.should have_content('Bill Murray created address on Testy McTest')
     page.should have_content('Bill Murray created comment on Testy McTest')
   end
 
@@ -67,7 +66,6 @@ feature 'Contacts', %q{
     page.should have_content('Test Subject')
 
     click_link 'Dashboard'
-    page.should have_content("Bill Murray viewed contact Test Subject")
     page.should have_content("Bill Murray updated contact Test Subject")
   end
 

@@ -99,7 +99,7 @@ Rails.application.routes.draw do
       put  :promote
       put  :reject
     end
-    
+
     get :autocomplete_account_name, :on => :collection
   end
 
@@ -140,6 +140,13 @@ Rails.application.routes.draw do
       put :change_password
       post :redraw
     end
+
+    collection do
+      match :auto_complete
+    end
+    collection do
+      get :opportunities_overview
+    end
   end
 
   namespace :admin do
@@ -171,6 +178,7 @@ Rails.application.routes.draw do
         get :options
         post :redraw
         post :sort
+        get :subform
       end
     end
 
