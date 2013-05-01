@@ -12,9 +12,9 @@ set :rvm_type, :system
 set :scm, :git
 set :repository,  "git://github.com/MSU-RCG/cat_crm.git"
 
-role :web, "crm.rcg.montana.edu"
-role :app, "crm.rcg.montana.edu"
-role :db,  "crm.rcg.montana.edu", :primary => true
+role :web, "catsrm-nursing.rcg.montana.edu"
+role :app, "catsrm-nursing.rcg.montana.edu"
+role :db,  "catsrm-nursing.rcg.montana.edu", :primary => true
 
 set :use_sudo, false
 set :user, "rails"
@@ -49,6 +49,12 @@ namespace :rails do
     end
   end
 
+  namespace :assets do
+    task :precompile do
+      run "cd #{current_path} && RAILS_ENV=#{rails_env} bundle exec rake assets:precompile"
+    end
+  end
+
   namespace :symlink do
     task :setup do
       links[:dirs].each do |l|
@@ -65,6 +71,6 @@ namespace :rails do
 end
 
 after "deploy:setup",           "rails:symlink:setup"
-after "deploy:setup",           "rails:db:setup"
 after "deploy:create_symlink",  "rails:symlink:link"
 after "deploy",                 "rails:db:migrate"
+after "deploy",                 "rails:assets:precompile"
