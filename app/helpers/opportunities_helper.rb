@@ -1,33 +1,14 @@
-# Fat Free CRM
-# Copyright (C) 2008-2011 by Michael Dvorkin
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
 #------------------------------------------------------------------------------
-
 module OpportunitiesHelper
 
   # Sidebar checkbox control for filtering opportunities by stage.
   #----------------------------------------------------------------------------
-  def opportunity_stage_checbox(stage, count)
-    checked = (session[:filter_by_opportunity_stage] ? session[:filter_by_opportunity_stage].split(",").include?(stage.to_s) : count.to_i > 0)
-    onclick = remote_function(
-      :url      => { :action => :filter },
-      :with     => h(%Q/"stage=" + $$("input[name='stage[]']").findAll(function (el) { return el.checked }).pluck("value")/),
-      :loading  => "$('loading').show()",
-      :complete => "$('loading').hide()"
-    )
-    check_box_tag("stage[]", stage, checked, :id => stage, :onclick => onclick)
+  def opportunity_stage_checkbox(stage, count)
+    entity_filter_checkbox(:stage, stage, count)
   end
 
   # Opportunity summary for RSS/ATOM feeds.

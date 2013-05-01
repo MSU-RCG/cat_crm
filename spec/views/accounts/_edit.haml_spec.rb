@@ -1,3 +1,8 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 
 describe "/accounts/_edit" do
@@ -6,7 +11,7 @@ describe "/accounts/_edit" do
   before do
     login_and_assign
     assign(:account, @account = FactoryGirl.create(:account))
-    assign(:users, [ @current_user ])
+    assign(:users, [ current_user ])
   end
 
   it "should render [edit account] form" do
@@ -35,4 +40,3 @@ describe "/accounts/_edit" do
     rendered.should_not have_tag("textarea[id=account_background_info]")
   end
 end
-

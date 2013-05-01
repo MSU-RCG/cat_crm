@@ -1,3 +1,8 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 
 describe "/leads/_new" do
@@ -6,7 +11,7 @@ describe "/leads/_new" do
   before do
     login_and_assign
     assign(:lead, FactoryGirl.build(:lead))
-    assign(:users, [ @current_user ])
+    assign(:users, [ current_user ])
     assign(:campaign, @campaign = FactoryGirl.create(:campaign))
     assign(:campaigns, [ @campaign ])
   end
@@ -17,7 +22,7 @@ describe "/leads/_new" do
     view.should render_template(:partial => "leads/_status")
     view.should render_template(:partial => "leads/_contact")
     view.should render_template(:partial => "leads/_web")
-    view.should render_template(:partial => "leads/_permissions")
+    view.should render_template(:partial => "entities/_permissions")
 
     rendered.should have_tag("form[class=new_lead]")
   end
@@ -36,4 +41,3 @@ describe "/leads/_new" do
     rendered.should_not have_tag("textarea[id=lead_background_info]")
   end
 end
-

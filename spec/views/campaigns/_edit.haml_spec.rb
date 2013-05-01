@@ -1,4 +1,9 @@
-require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
+require 'spec_helper'
 
 describe "/campaigns/_edit" do
   include CampaignsHelper
@@ -6,16 +11,17 @@ describe "/campaigns/_edit" do
   before do
     login_and_assign
     assign(:campaign, @campaign = FactoryGirl.create(:campaign))
-    assign(:users, [ @current_user ])
+    assign(:users, [ current_user ])
   end
 
   it "should render [edit campaign] form" do
     render
+
     view.should render_template(:partial => "campaigns/_top_section")
     view.should render_template(:partial => "campaigns/_objectives")
-    view.should render_template(:partial => "campaigns/_permissions")
+    view.should render_template(:partial => "_permissions")
 
-    rendered.should have_tag("form[class=edit_campaign]") do
+    view.should have_tag("form[class=edit_campaign]") do
       with_tag "input[type=hidden][id=campaign_user_id][value=#{@campaign.user_id}]"
     end
   end
@@ -34,4 +40,3 @@ describe "/campaigns/_edit" do
     rendered.should_not have_tag("textarea[id=campaign_background_info]")
   end
 end
-

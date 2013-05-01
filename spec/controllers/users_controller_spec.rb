@@ -1,3 +1,8 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 require File.expand_path(File.dirname(__FILE__) + '/../spec_helper')
 
 describe UsersController do
@@ -20,7 +25,7 @@ describe UsersController do
 
     it "should expose current user as @user if no specific user was requested" do
       get :show
-      assigns[:user].should == @current_user
+      assigns[:user].should == current_user
       response.should render_template("users/show")
     end
 
@@ -38,7 +43,7 @@ describe UsersController do
       end
 
       it "should render current user as JSON if no specific user was requested" do
-        @current_user.should_receive(:to_json).and_return("generated JSON")
+        current_user.should_receive(:to_json).and_return("generated JSON")
 
         get :show
         response.body.should == "generated JSON"
@@ -59,7 +64,7 @@ describe UsersController do
       end
 
       it "should render current user as XML if no specific user was requested" do
-        @current_user.should_receive(:to_xml).and_return("generated XML")
+        current_user.should_receive(:to_xml).and_return("generated XML")
 
         get :show
         response.body.should == "generated XML"
@@ -74,7 +79,7 @@ describe UsersController do
 
     describe "if user is allowed to sign up" do
       it "should expose a new user as @user and render [new] template" do
-        controller.should_receive(:can_signup?).and_return(true)
+        @controller.should_receive(:can_signup?).and_return(true)
         @user = FactoryGirl.build(:user)
         User.stub!(:new).and_return(@user)
 
@@ -86,7 +91,7 @@ describe UsersController do
 
     describe "if user is not allowed to sign up" do
       it "should redirect to login_path" do
-        controller.should_receive(:can_signup?).and_return(false)
+        @controller.should_receive(:can_signup?).and_return(false)
 
         get :new
         response.should redirect_to(login_path)
@@ -99,12 +104,12 @@ describe UsersController do
   describe "responding to GET edit" do
     before(:each) do
       require_user
-      @user = @current_user
+      @user = current_user
     end
 
     it "should expose current user as @user and render [edit] template" do
       xhr :get, :edit, :id => @user.id
-      assigns[:user].should == @current_user
+      assigns[:user].should == current_user
       response.should render_template("users/edit")
     end
 
@@ -139,7 +144,6 @@ describe UsersController do
         flash[:notice].should =~ /approval/
         response.should redirect_to(login_path)
       end
-
     end
 
     describe "with invalid params" do
@@ -152,7 +156,6 @@ describe UsersController do
         response.should render_template("users/new")
       end
     end
-
   end
 
   # PUT /users/1
@@ -161,32 +164,30 @@ describe UsersController do
   describe "responding to PUT update" do
     before(:each) do
       require_user
-      @user = @current_user
+      @user = current_user
     end
 
     describe "with valid params" do
 
       it "should update user information and render [update] template" do
         xhr :put, :update, :id => @user.id, :user => { :first_name => "Billy", :last_name => "Bones" }
-        @user.reload.first_name.should == "Billy"
+        @user.reload
+        @user.first_name.should == "Billy"
         @user.last_name.should == "Bones"
         assigns[:user].should == @user
         response.should render_template("users/update")
       end
-
     end
 
     describe "with invalid params" do
 
       it "should not update the user information and redraw [update] template" do
         xhr :put, :update, :id => @user.id, :user => { :first_name => nil }
-        @user.reload.first_name.should == @current_user.first_name
+        @user.reload.first_name.should == current_user.first_name
         assigns[:user].should == @user
         response.should render_template("users/update")
       end
-
     end
-
   end
 
   # DELETE /users/1
@@ -211,12 +212,12 @@ describe UsersController do
   describe "responding to GET avatar" do
     before(:each) do
       require_user
-      @user = @current_user
+      @user = current_user
     end
 
     it "should expose current user as @user and render [avatar] template" do
       xhr :get, :avatar, :id => @user.id
-      assigns[:user].should == @current_user
+      assigns[:user].should == current_user
       response.should render_template("users/avatar")
     end
   end
@@ -227,7 +228,7 @@ describe UsersController do
   describe "responding to PUT update_avatar" do
     before(:each) do
       require_user
-      @user = @current_user
+      @user = current_user
     end
 
     it "should delete avatar if user chooses to use Gravatar" do
@@ -247,7 +248,7 @@ describe UsersController do
     end
 
     it "should save the user avatar if it was successfully uploaded and resized" do
-      @image = fixture_file_upload("/rails.png", "image/png")
+      @image = fixture_file_upload('/rails.png', 'image/png')
 
       xhr :put, :upload_avatar, :id => @user.id, :avatar => { :image => @image }
       @user.avatar.should_not == nil
@@ -275,12 +276,12 @@ describe UsersController do
   describe "responding to GET avatar" do
     before(:each) do
       require_user
-      @user = @current_user
+      @user = current_user
     end
 
     it "should expose current user as @user and render [pssword] template" do
       xhr :get, :password, :id => @user.id
-      assigns[:user].should == @current_user
+      assigns[:user].should == current_user
       response.should render_template("users/password")
     end
   end
@@ -291,17 +292,17 @@ describe UsersController do
   describe "responding to PUT change_password" do
     before(:each) do
       require_user
-      @current_user_session.stub!(:unauthorized_record=).and_return(@current_user)
-      @current_user_session.stub!(:save).and_return(@current_user)
-      @user = @current_user
+      @current_user_session.stub!(:unauthorized_record=).and_return(current_user)
+      @current_user_session.stub!(:save).and_return(current_user)
+      @user = current_user
       @new_password = "secret?!"
     end
 
     it "should set new user password" do
       xhr :put, :change_password, :id => @user.id, :current_password => @user.password, :user => { :password => @new_password, :password_confirmation => @new_password }
-      assigns[:user].should == @current_user
-      @current_user.password.should == @new_password
-      @current_user.errors.should be_empty
+      assigns[:user].should == current_user
+      current_user.password.should == @new_password
+      current_user.errors.should be_empty
       flash[:notice].should_not == nil
       response.should render_template("users/change_password")
     end
@@ -309,36 +310,103 @@ describe UsersController do
     it "should allow to change password if current password is blank" do
       @user.password_hash = nil
       xhr :put, :change_password, :id => @user.id, :current_password => "", :user => { :password => @new_password, :password_confirmation => @new_password }
-      @current_user.password.should == @new_password
-      @current_user.errors.should be_empty
+      current_user.password.should == @new_password
+      current_user.errors.should be_empty
       flash[:notice].should_not == nil
       response.should render_template("users/change_password")
     end
 
     it "should not change user password if password field is blank" do
       xhr :put, :change_password, :id => @user.id, :current_password => @user.password, :user => { :password => "", :password_confirmation => "" }
-      assigns[:user].should == @current_user
-      @current_user.password.should == @user.password # password stays the same
-      @current_user.errors.should be_empty # no errors
+      assigns[:user].should == current_user
+      current_user.password.should == @user.password # password stays the same
+      current_user.errors.should be_empty # no errors
       flash[:notice].should_not == nil
       response.should render_template("users/change_password")
     end
 
     it "should require valid current password" do
       xhr :put, :change_password, :id => @user.id, :current_password => "what?!", :user => { :password => @new_password, :password_confirmation => @new_password }
-      @current_user.password.should == @user.password # password stays the same
-      @current_user.should have(1).error # .error_on(:current_password)
+      current_user.password.should == @user.password # password stays the same
+      current_user.should have(1).error # .error_on(:current_password)
       response.should render_template("users/change_password")
     end
 
     it "should require new password and password confirmation to match" do
       xhr :put, :change_password, :id => @user.id, :current_password => @user.password, :user => { :password => @new_password, :password_confirmation => "none" }
-      @current_user.password.should == @user.password # password stays the same
-      @current_user.should have(1).error # .error_on(:current_password)
+      current_user.password.should == @user.password # password stays the same
+      current_user.should have(1).error # .error_on(:current_password)
       response.should render_template("users/change_password")
     end
 
   end
 
-end
+  # GET /users/opportunities
+  # GET /users/opportunities.xml                                         HTML
+  #----------------------------------------------------------------------------
+  describe "responding to GET opportunities_overview" do
+    before(:each) do
+      require_user
+      @user = @current_user
+      @user.update_attributes(:first_name => "Apple", :last_name => "Boy")
+    end
 
+    it "should assign @users_with_opportunities" do
+      FactoryGirl.create(:opportunity, :stage => "prospecting", :assignee => @user)
+      xhr :get, :opportunities_overview
+      assigns[:users_with_opportunities].should == [@current_user]
+    end
+
+    it "@users_with_opportunities should be ordered by name" do
+      FactoryGirl.create(:opportunity, :stage => "prospecting", :assignee => @user)
+
+      user1 = FactoryGirl.create(:user, :first_name => "Zebra", :last_name => "Stripes")
+      FactoryGirl.create(:opportunity, :stage => "prospecting", :assignee => user1)
+
+      user2 = FactoryGirl.create(:user, :first_name => "Bilbo", :last_name => "Magic")
+      FactoryGirl.create(:opportunity, :stage => "prospecting", :assignee => user2)
+
+      xhr :get, :opportunities_overview
+
+      assigns[:users_with_opportunities].should == [@user, user2, user1]
+    end
+
+    it "should assign @unassigned_opportunities with only open unassigned opportunities" do
+      @o1 = FactoryGirl.create(:opportunity, :stage => "prospecting", :assignee => nil)
+      @o2 = FactoryGirl.create(:opportunity, :stage => "won", :assignee => nil)
+      @o3 = FactoryGirl.create(:opportunity, :stage => "prospecting", :assignee => nil)
+
+      xhr :get, :opportunities_overview
+
+      assigns[:unassigned_opportunities].should include(@o1, @o3)
+      assigns[:unassigned_opportunities].should_not include(@o2)
+    end
+
+    it "@unassigned_opportunities should be ordered by stage" do
+      @o1 = FactoryGirl.create(:opportunity, :stage => "proposal", :assignee => nil)
+      @o2 = FactoryGirl.create(:opportunity, :stage => "prospecting", :assignee => nil)
+      @o3 = FactoryGirl.create(:opportunity, :stage => "negotiation", :assignee => nil)
+
+      xhr :get, :opportunities_overview
+
+      assigns[:unassigned_opportunities].should == [@o3, @o1, @o2]
+    end
+
+    it "should not include users who have no assigned opportunities" do
+      xhr :get, :opportunities_overview
+      assigns[:users_with_opportunities].should == []
+    end
+
+    it "should not include users who have no open assigned opportunities" do
+      FactoryGirl.create(:opportunity, :stage => "won", :assignee => @user)
+
+      xhr :get, :opportunities_overview
+      assigns[:users_with_opportunities].should == []
+    end
+
+    it "should render opportunities overview" do
+      xhr :get, :opportunities_overview
+      response.should render_template("users/opportunities_overview")
+    end
+  end
+end

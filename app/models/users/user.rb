@@ -1,20 +1,8 @@
-# Fat Free CRM
-# Copyright (C) 2008-2011 by Michael Dvorkin
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
 #------------------------------------------------------------------------------
-
 # == Schema Information
 #
 # Table name: users
@@ -59,14 +47,16 @@ class User < ActiveRecord::Base
 
   has_one     :avatar, :as => :entity, :dependent => :destroy  # Personal avatar.
   has_many    :avatars                                         # As owner who uploaded it, ex. Contact avatar.
-  has_many    :comments, :as => :commentable                   # As owner who crated a comment.
+  has_many    :comments, :as => :commentable                   # As owner who created a comment.
   has_many    :accounts
   has_many    :campaigns
   has_many    :leads
   has_many    :contacts
   has_many    :opportunities
+  has_many    :assigned_opportunities, :class_name => 'Opportunity', :foreign_key => 'assigned_to'
   has_many    :permissions, :dependent => :destroy
   has_many    :preferences, :dependent => :destroy
+  has_and_belongs_to_many :groups
 
   has_paper_trail :ignore => [:last_request_at, :perishable_token]
 
@@ -77,14 +67,22 @@ class User < ActiveRecord::Base
 
   scope :text_search, lambda { |query|
     query = query.gsub(/[^\w\s\-\.'\p{L}]/u, '').strip
-    where('upper(username) LIKE upper(:s) OR upper(first_name) LIKE upper(:s) OR upper(last_name) LIKE upper(:s)', :s => "#{query}%")
+    where('upper(username) LIKE upper(:s) OR upper(first_name) LIKE upper(:s) OR upper(last_name) LIKE upper(:s)', :s => "%#{query}%")
   }
+
+  scope :my, lambda {
+    accessible_by(User.current_ability)
+  }
+
+  scope :have_assigned_opportunities, joins("INNER JOIN opportunities ON users.id = opportunities.assigned_to").
+                                      where("opportunities.stage <> 'lost' AND opportunities.stage <> 'won'").
+                                      select('DISTINCT(users.id), users.*')
 
   acts_as_authentic do |c|
     c.session_class = Authentication
     c.validates_uniqueness_of_login_field_options = { :message => :username_taken }
     c.validates_length_of_login_field_options     = { :minimum => 1, :message => :missing_username }
-    c.merge_validates_format_of_login_field_options(:with => /.*/)
+    c.merge_validates_format_of_login_field_options(:with => /[a-zA-Z0-9_-]+/)
 
     c.validates_uniqueness_of_email_field_options = { :message => :email_in_use }
     c.validates_length_of_password_field_options  = { :minimum => 0, :allow_blank => true, :if => :require_password? }
@@ -126,7 +124,7 @@ class User < ActiveRecord::Base
   #----------------------------------------------------------------------------
   def deliver_password_reset_instructions!
     reset_perishable_token!
-    Notifier.password_reset_instructions(self).deliver
+    UserMailer.password_reset_instructions(self).deliver
   end
 
   # Override global I18n.locale if the user has individual local preference.
@@ -139,6 +137,13 @@ class User < ActiveRecord::Base
   #----------------------------------------------------------------------------
   def set_single_access_token
     self.single_access_token ||= update_attribute(:single_access_token, Authlogic::Random.friendly_token)
+  end
+
+  # Massage value when using Chosen select box which gives values like ["", "1,2,3"]
+  #----------------------------------------------------------------------------
+  def group_ids=(value)
+    value = value.join.split(',').map(&:to_i) if value.map{|v| v.to_s.include?(',')}.any?
+    super(value)
   end
 
   private
@@ -165,4 +170,15 @@ class User < ActiveRecord::Base
     end
     artifacts == 0
   end
+
+  # Define class methods
+  #----------------------------------------------------------------------------
+  class << self
+
+    def current_ability
+      Ability.new(User.current_user)
+    end
+
+  end
+
 end

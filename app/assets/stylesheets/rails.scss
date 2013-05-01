@@ -1,20 +1,8 @@
-// Fat Free CRM
-// Copyright (C) 2008-2011 by Michael Dvorkin
+// Copyright (c) 2008-2013 Michael Dvorkin and contributors.
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+// Fat Free CRM is freely distributable under the terms of MIT license.
+// See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
 //------------------------------------------------------------------------------
-
 // Form validation messages.
 //------------------------------------------------------------------------------
 .errorExplanation {
@@ -48,7 +36,7 @@
 
 // Flash messages.
 //------------------------------------------------------------------------------
-p {
+p, div {
   &.flash_warning, &.flash_error {
     background: lightpink;
     color: maroon;
@@ -103,7 +91,7 @@ div {
 
 // Pagination.
 //------------------------------------------------------------------------------
-.pagination {
+.pagination, .per_page_options {
   background: white;
   float: right;
   font-size: 11px;
@@ -125,7 +113,7 @@ div {
     text-decoration: none;
     color: #105cb6;
     border: 1px solid #9aafe5;
-    &hover, &focus {
+    &.hover, &.focus {
       color: navy;
       background: lightyellow;
       border-color: navy; } }
@@ -134,3 +122,12 @@ div {
     border: 1px solid #bbbbbb;
     font-style: normal;
     font-weight: bold; } }
+
+.per_page_options {
+  margin-top: 15px;
+  clear: both;
+
+  span.per_page_label {
+    color: #6A6A6A;
+  }
+}

@@ -1,40 +1,63 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 (($) ->
-  class @Search
-    constructor: (@templates = {}) ->
 
-    add_fields: (button, type, content) ->
-      new_id = new Date().getTime()
-      regexp = new RegExp('new_' + type, 'g')
-      $(button).closest('p').before(content.replace(regexp, new_id))
+  $ ->
+    $("#advanced_search").ransack_search_form()
 
-    remove_fields: (button) ->
-      container = $(button).closest('.fields')
-      if (container.siblings().length > 1)
-        container.remove()
-      else
-        container.parent().closest('.fields').remove()
+    # For basic search, remove placeholder text on focus, restore on blur
+    $('#query').focusin (e) ->
+      $(this).data('placeholder', $(this).attr('placeholder')).attr('placeholder', '')
+    $('#query').focusout (e) ->
+      $(this).attr('placeholder', $(this).data('placeholder'))
 
-  $(document).ready ->
-    search = new Search()
+    # For advanced search we show a spinner and dim the page when loading results
+    # This method undoes that when the results are returned. Ideally, this should
+    # be converted to jQuery (using the 'live' method)
+    # but we have to move to jquery-ujs first as all ajax events are current
+    # registered with prototype
+    Event.observe document.body, 'ajax:complete', (e, el) ->
+      if e.findElement('.ransack_search')
+        $("#loading").hide()
+        $("#advanced_search").css('opacity', 1)
 
-    $(".add_fields").live "click", ->
-      search.add_fields this, $(this).data("fieldType"), $(this).data("content")
-      false
+    Event.observe document.body, 'ajax:failure', (e, el) ->
+      if e.findElement('.ransack_search')
+        $('#flash').html('An error occurred whilst trying to search') # no i18n
+        crm.flash('error')
 
-    $(".remove_fields").live "click", ->
-      search.remove_fields this
-      false
+    # Search tabs
+    # -----------------------------------------------------
+    activate_search_form = (search_form) ->
+      # Hide all
+      $('#search .search_form').hide()
+      $('#search .tabs li a').removeClass('active')
+      # Show selected
+      $('#' + search_form).show()
+      $('a[data-search-form=' + search_form + ']').addClass('active')
+      # Run search for current query
+      switch search_form
+        when 'basic_search'
+          $('#lists .show_lists_save_form').hide()
+          query_input = $('#basic_search input#query')
+          if !query_input.is('.defaultTextActive')
+            value = query_input.val()
+          else
+            value = ""
+          crm.search(value, window.controller)
+          $('#filters').enable() # Enable filters panel (if present)
 
-    $("select.predicate").live "change", ->
-      value_el = $('input#' + $(this).attr('id').slice(0, -1) + "v_0_value");
-      if $(this).val() in ["true", "false", "blank", "present", "null", "not_null"]
-        value_el.val("true")
-        value_el.hide()
-      else
-        unless value_el.is(":visible")
-          value_el.val("")
-          value_el.show()
+        when 'advanced_search'
+          $('#lists .show_lists_save_form').show()
+          $("#advanced_search form input:submit").click()
+          $('#filters').disable() # Disable filters panel (if present)
 
-    # Fire change event for existing search form.
-    $("select.predicate").change()
+      return
+
+    $("#search .tabs a").click ->
+      activate_search_form($(this).data('search-form'))
+
 ) jQuery

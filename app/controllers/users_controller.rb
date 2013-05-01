@@ -1,31 +1,19 @@
-# Fat Free CRM
-# Copyright (C) 2008-2011 by Michael Dvorkin
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
 #------------------------------------------------------------------------------
-
 class UsersController < ApplicationController
 
   before_filter :require_no_user, :only => [ :new, :create ]
   before_filter :require_user, :only => [ :show, :redraw ]
-  before_filter :set_current_tab, :only => [ :show ] # Don't hightlight any tabs.
+  before_filter :set_current_tab, :only => [ :show, :opportunities_overview ] # Don't hightlight any tabs.
   before_filter :require_and_assign_user, :except => [ :new, :create, :show, :avatar, :upload_avatar ]
-  before_filter :assign_given_or_current_user, :only => [ :show, :avatar, :upload_avatar ]
+  before_filter :assign_given_or_current_user, :only => [ :show, :avatar, :upload_avatar, :edit, :update ]
+
+  load_resource
 
   respond_to :html, :only => [ :show, :new ]
-  respond_to :js
-  respond_to :json, :xml, :except => :edit
 
   # GET /users/1
   # GET /users/1.json
@@ -41,7 +29,6 @@ class UsersController < ApplicationController
   #----------------------------------------------------------------------------
   def new
     if can_signup?
-      @user = User.new
       respond_with(@user)
     else
       redirect_to login_path
@@ -58,7 +45,6 @@ class UsersController < ApplicationController
   # POST /users.xml                                                        HTML
   #----------------------------------------------------------------------------
   def create
-    @user = User.new(params[:user])
     if @user.save
       if Setting.user_signup == :needs_approval
         flash[:notice] = t(:msg_account_created)
@@ -140,24 +126,31 @@ class UsersController < ApplicationController
     else
       @user.errors.add(:current_password, t(:msg_invalid_password))
     end
+
     respond_with(@user)
   end
 
   # POST /users/1/redraw                                                   AJAX
   #----------------------------------------------------------------------------
   def redraw
-    @current_user.preference[:locale] = params[:locale]
-    render(:update) { |page| page.redirect_to user_path(@current_user) }
+    current_user.preference[:locale] = params[:locale]
+    render(:update) { |page| page.redirect_to user_path(current_user) }
+  end
+
+  def opportunities_overview
+    @users_with_opportunities = User.have_assigned_opportunities.order(:first_name)
+    @unassigned_opportunities = Opportunity.unassigned.pipeline.order(:stage)
   end
 
   private
+
   #----------------------------------------------------------------------------
   def require_and_assign_user
     require_user
-    @user = @current_user
+    @user = current_user
   end
 
   def assign_given_or_current_user
-    @user = params[:id] ? User.find(params[:id]) : @current_user
+    @user = params[:id] ? User.find(params[:id]) : current_user
   end
 end

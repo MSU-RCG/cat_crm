@@ -1,11 +1,16 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 
 describe "/opportunities/update" do
   before do
     login_and_assign
 
-    assign(:opportunity, @opportunity = FactoryGirl.create(:opportunity, :user => @current_user, :assignee => FactoryGirl.create(:user)))
-    assign(:users, [ @current_user ])
+    assign(:opportunity, @opportunity = FactoryGirl.create(:opportunity, :user => current_user, :assignee => FactoryGirl.create(:user)))
+    assign(:users, [ current_user ])
     assign(:account, @account = FactoryGirl.create(:account))
     assign(:accounts, [ @account ])
     assign(:stage, Setting.unroll(:opportunity_stage))
@@ -159,4 +164,3 @@ describe "/opportunities/update" do
     end
   end # errors
 end
-

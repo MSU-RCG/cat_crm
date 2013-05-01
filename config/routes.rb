@@ -1,3 +1,8 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 Rails.application.routes.draw do
   resources :lists
 
@@ -20,8 +25,7 @@ Rails.application.routes.draw do
   resources :comments
   resources :emails
   resources :passwords
-  resources :student_reports
-  
+
   resources :accounts, :id => /\d+/ do
     collection do
       get  :advanced_search
@@ -35,6 +39,8 @@ Rails.application.routes.draw do
     member do
       put  :attach
       post :discard
+      post :subscribe
+      post :unsubscribe
       get :contacts
       get :opportunities
     end
@@ -53,6 +59,8 @@ Rails.application.routes.draw do
     member do
       put  :attach
       post :discard
+      post :subscribe
+      post :unsubscribe
       get :leads
       get :opportunities
     end
@@ -71,6 +79,8 @@ Rails.application.routes.draw do
     member do
       put  :attach
       post :discard
+      post :subscribe
+      post :unsubscribe
       get :opportunities
     end
   end
@@ -88,10 +98,14 @@ Rails.application.routes.draw do
     member do
       get  :convert
       post :discard
+      post :subscribe
+      post :unsubscribe
       put  :attach
       put  :promote
       put  :reject
     end
+
+    get :autocomplete_account_name, :on => :collection
   end
 
   resources :opportunities, :id => /\d+/ do
@@ -107,6 +121,8 @@ Rails.application.routes.draw do
     member do
       put  :attach
       post :discard
+      post :subscribe
+      post :unsubscribe
       get :contacts
     end
   end
@@ -127,10 +143,20 @@ Rails.application.routes.draw do
       get :password
       put :upload_avatar
       put :change_password
+      post :redraw
+    end
+
+    collection do
+      match :auto_complete
+    end
+    collection do
+      get :opportunities_overview
     end
   end
 
   namespace :admin do
+    resources :groups
+
     resources :users do
       collection do
         post :auto_complete
@@ -157,6 +183,7 @@ Rails.application.routes.draw do
         get :options
         post :redraw
         post :sort
+        get :subform
       end
     end
 

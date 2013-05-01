@@ -1,20 +1,8 @@
-# Fat Free CRM
-# Copyright (C) 2008-2011 by Michael Dvorkin
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
 #------------------------------------------------------------------------------
-
 # == Schema Information
 #
 # Table name: accounts
@@ -47,10 +35,13 @@ class Account < ActiveRecord::Base
   has_many    :tasks, :as => :asset, :dependent => :destroy#, :order => 'created_at DESC'
   has_one     :billing_address, :dependent => :destroy, :as => :addressable, :class_name => "Address", :conditions => "address_type = 'Billing'"
   has_one     :shipping_address, :dependent => :destroy, :as => :addressable, :class_name => "Address", :conditions => "address_type = 'Shipping'"
+  has_many    :addresses, :dependent => :destroy, :as => :addressable, :class_name => "Address" # advanced search uses this
   has_many    :emails, :as => :mediator
 
-  accepts_nested_attributes_for :billing_address, :allow_destroy => true
-  accepts_nested_attributes_for :shipping_address, :allow_destroy => true
+  serialize :subscribed_users, Set
+
+  accepts_nested_attributes_for :billing_address,  :allow_destroy => true, :reject_if => proc {|attributes| Address.reject_address(attributes)}
+  accepts_nested_attributes_for :shipping_address, :allow_destroy => true, :reject_if => proc {|attributes| Address.reject_address(attributes)}
 
   scope :state, lambda { |filters|
     where('category IN (?)' + (filters.delete('other') ? ' OR category IS NULL' : ''), filters)
@@ -58,18 +49,26 @@ class Account < ActiveRecord::Base
   scope :created_by, lambda { |user| where(:user_id => user.id) }
   scope :assigned_to, lambda { |user| where(:assigned_to => user.id) }
 
-  scope :text_search, lambda { |query|
-    query = query.gsub(/[^\w\s\-\.'\p{L}]/u, '').strip
-    where('upper(name) LIKE upper(:m) OR upper(email) LIKE upper(:m)', :m => "%#{query}%")
+  scope :text_search, lambda { |query| search('name_or_email_cont' => query).result }
+
+  scope :visible_on_dashboard, lambda { |user|
+    # Show accounts which either belong to the user and are unassigned, or are assigned to the user
+    where('(user_id = :user_id AND assigned_to IS NULL) OR assigned_to = :user_id', :user_id => user.id)
   }
+
+  scope :by_name, order(:name)
 
   uses_user_permissions
   acts_as_commentable
+  uses_comment_extensions
   acts_as_taggable_on :tags
-  has_paper_trail
+  has_paper_trail :ignore => [ :subscribed_users ]
   has_fields
   exportable
   sortable :by => [ "name ASC", "rating DESC", "created_at DESC", "updated_at DESC" ], :default => "created_at DESC"
+
+  has_ransackable_associations %w(contacts opportunities tags activities emails addresses comments tasks)
+  ransack_can_autocomplete
 
   validates_presence_of :name, :message => :missing_account_name
   validates_uniqueness_of :name, :scope => :deleted_at
@@ -78,9 +77,8 @@ class Account < ActiveRecord::Base
 
   # Default values provided through class methods.
   #----------------------------------------------------------------------------
-  def self.per_page ; 20     ; end
-  def self.outline  ; "long" ; end
-
+  def self.per_page ; 20 ; end
+  
   # Extract last line of billing address and get rid of numeric zipcode.
   #----------------------------------------------------------------------------
   def location
@@ -109,13 +107,13 @@ class Account < ActiveRecord::Base
 
   # Class methods.
   #----------------------------------------------------------------------------
-  def self.create_or_select_for(model, params, users)
+  def self.create_or_select_for(model, params)
     if params[:id].present?
       account = Account.find(params[:id])
     else
       account = Account.new(params)
       if account.access != "Lead" || model.nil?
-        account.save_with_permissions(users)
+        account.save
       else
         account.save_with_model_permissions(model)
       end
@@ -134,4 +132,3 @@ class Account < ActiveRecord::Base
     self.category = nil if self.category.blank?
   end
 end
-

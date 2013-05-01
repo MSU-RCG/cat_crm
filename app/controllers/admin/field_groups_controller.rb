@@ -1,22 +1,11 @@
-# Fat Free CRM
-# Copyright (C) 2008-2011 by Michael Dvorkin
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
 #------------------------------------------------------------------------------
-
 class Admin::FieldGroupsController < Admin::ApplicationController
-  before_filter :require_user
+
+  helper 'admin/fields'
 
   # GET /admin/field_groups/new
   # GET /admin/field_groups/new.xml                                        AJAX
@@ -24,13 +13,7 @@ class Admin::FieldGroupsController < Admin::ApplicationController
   def new
     @field_group = FieldGroup.new(:klass_name => params[:klass_name])
 
-    respond_to do |format|
-      format.js   # new.js.rjs
-      format.xml  { render :xml => @field_group }
-    end
-
-  rescue ActiveRecord::RecordNotFound
-    respond_to_not_found(:html, :xml)
+    respond_with(@field_group)
   end
 
   # GET /admin/field_groups/1/edit                                         AJAX
@@ -39,29 +22,19 @@ class Admin::FieldGroupsController < Admin::ApplicationController
     @field_group = FieldGroup.find(params[:id])
 
     if params[:previous].to_s =~ /(\d+)\z/
-      @previous = FieldGroup.find($1)
+      @previous = FieldGroup.find_by_id($1) || $1.to_i
     end
 
-  rescue ActiveRecord::RecordNotFound
-    @previous ||= $1.to_i
-    respond_to_not_found(:js)
+    respond_with(@field_group)
   end
 
   # POST /admin/field_groups
   # POST /admin/field_groups.xml                                           AJAX
   #----------------------------------------------------------------------------
   def create
-    @field_group = FieldGroup.new(params[:field_group])
+    @field_group = FieldGroup.create(params[:field_group])
 
-    respond_to do |format|
-      if @field_group.save
-        format.js   # create.js.rjs
-        format.xml  { render :xml => @field_group, :status => :created, :location => @field_group }
-      else
-        format.js   # create.js.rjs
-        format.xml  { render :xml => @field_group.errors, :status => :unprocessable_entity }
-      end
-    end
+    respond_with(@field_group)
   end
 
   # PUT /admin/field_groups/1
@@ -69,19 +42,9 @@ class Admin::FieldGroupsController < Admin::ApplicationController
   #----------------------------------------------------------------------------
   def update
     @field_group = FieldGroup.find(params[:id])
+    @field_group.update_attributes(params[:field_group])
 
-    respond_to do |format|
-      if @field_group.update_attributes(params[:field_group])
-        format.js
-        format.xml  { head :ok }
-      else
-        format.js
-        format.xml  { render :xml => @field_group.errors, :status => :unprocessable_entity }
-      end
-    end
-
-  rescue ActiveRecord::RecordNotFound
-    respond_to_not_found(:js, :xml)
+    respond_with(@field_group)
   end
 
   # DELETE /admin/field_groups/1
@@ -89,18 +52,9 @@ class Admin::FieldGroupsController < Admin::ApplicationController
   #----------------------------------------------------------------------------
   def destroy
     @field_group = FieldGroup.find(params[:id])
+    @field_group.destroy
 
-    respond_to do |format|
-      if @field_group.destroy
-        # Redirect to fields index
-        format.js { render(:destroy) { |page| page.redirect_to admin_fields_url } }
-        format.xml  { head :ok }
-      else
-        flash[:warning] = t(:msg_cant_delete_field_group, @field_group.name)
-        format.js   # destroy.js.rjs
-        format.xml  { render :xml => @field_group.errors, :status => :unprocessable_entity }
-      end
-    end
+    respond_with(@field_group)
   end
 
   # POST /admin/field_groups/sort
@@ -115,14 +69,10 @@ class Admin::FieldGroupsController < Admin::ApplicationController
 
     render :nothing => true
   end
-  
+
   # GET /admin/field_groups/1/confirm                                      AJAX
   #----------------------------------------------------------------------------
   def confirm
     @field_group = FieldGroup.find(params[:id])
-
-  rescue ActiveRecord::RecordNotFound
-    respond_to_not_found(:js, :xml)
   end
-
 end

@@ -1,3 +1,8 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 
 describe "/campaigns/create" do
@@ -43,10 +48,7 @@ describe "/campaigns/create" do
         with_tag("form[class=new_campaign]")
       end
       rendered.should include('$("create_campaign").visualEffect("shake"')
-      rendered.should include('crm.date_select_popup("campaign_starts_on")')
-      rendered.should include('crm.date_select_popup("campaign_ends_on")')
     end
   end
 
 end
-

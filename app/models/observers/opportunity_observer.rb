@@ -1,20 +1,8 @@
-# Fat Free CRM
-# Copyright (C) 2008-2011 by Michael Dvorkin
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
 #------------------------------------------------------------------------------
-
 class OpportunityObserver < ActiveRecord::Observer
   observe :opportunity
 
@@ -35,9 +23,12 @@ class OpportunityObserver < ActiveRecord::Observer
     if original
       if original.stage != "won" && item.stage == "won"    # :other to :won -- add to total campaign revenue.
         update_campaign_revenue(item.campaign, (item.amount || 0) - (item.discount || 0))
+        item.update_attribute(:probability, 100) # Set probability to 100% if won
         return log_activity(item, :won)
       elsif original.stage == "won" && item.stage != "won" # :won to :other -- substract from total campaign revenue.
         update_campaign_revenue(original.campaign, -((original.amount || 0) - (original.discount || 0)))
+      elsif original.stage != "lost" && item.stage == "lost"
+        item.update_attribute(:probability, 0)   # Set probability to 0% if lost
       end
     end
   end

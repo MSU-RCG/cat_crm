@@ -1,20 +1,8 @@
-# Fat Free CRM
-# Copyright (C) 2008-2011 by Michael Dvorkin
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
 #------------------------------------------------------------------------------
-
 # == Schema Information
 #
 # Table name: comments
@@ -41,6 +29,40 @@ class Comment < ActiveRecord::Base
   has_paper_trail :meta => { :related => :commentable },
                   :ignore => [:state]
 
+  before_create :subscribe_mentioned_users
+  after_create  :subscribe_user_to_entity, :notify_subscribers
+
   def expanded?;  self.state == "Expanded";  end
   def collapsed?; self.state == "Collapsed"; end
+
+  private
+  # Add user to subscribed_users field on entity
+  def subscribe_user_to_entity(u = user)
+    commentable.subscribed_users << u.id
+    commentable.save
+  end
+
+  # Notify subscribed users when a comment is added, unless user created this comment
+  def notify_subscribers
+    commentable.subscribed_users.reject{|user_id| user_id == user.id}.each do |subscriber_id|
+      if subscriber = User.find_by_id(subscriber_id)
+        # Only send email if SMTP settings are configured
+        if Rails.application.config.action_mailer.smtp_settings.present?
+          SubscriptionMailer.comment_notification(subscriber, self).deliver
+        end
+      end
+    end
+  end
+
+  # If a user is mentioned in the comment body, subscribe them to the entity
+  # before creation, so that they are sent an email notification
+  def subscribe_mentioned_users
+    # Scan for usernames mentioned in the comment,
+    # e.g. "Hi @example_user, take a look at this lead. Please show @another_user"
+    comment.scan(/@([a-zA-Z0-9_-]+)/).map(&:first).each do |username|
+      if (mentioned_user = User.find_by_username(username))
+        subscribe_user_to_entity(mentioned_user)
+      end
+    end
+  end
 end

@@ -1,9 +1,15 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 (($) ->
   class @Lists
     constructor: (@templates = {}) ->
 
     show_save_form: ->
       $(".save_list").show()
+      $('.save_list #list_name').focus()
 
     hide_save_form: ->
       $(".save_list").hide()
@@ -23,7 +29,7 @@
 
     $("input#save_list").live "click", ->
       # Set value of hidden list_url field to serialized search form
-      $("#list_url").val(window.location.pathname + '?' + $('form.advanced_search').serialize())
+      $("#list_url").val(window.location.pathname + '?' + $('form.ransack_search').serialize())
       true
 
     # When mouseover on li, change asset icons to delete buttons

@@ -1,27 +1,12 @@
-# Fat Free CRM
-# Copyright (C) 2008-2011 by Michael Dvorkin
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
 #------------------------------------------------------------------------------
-
 class CommentsController < ApplicationController
   before_filter :require_user
 
-  respond_to :js
-  respond_to :json, :xml, :except => :edit
 
-  COMMENTABLE = %w(account_id campaign_id contact_id lead_id opportunity_id task_id).freeze
 
   # GET /comments
   # GET /comments.json
@@ -56,13 +41,12 @@ class CommentsController < ApplicationController
 
     if @commentable
       update_commentable_session
-      @commentable.classify.constantize.my.find(params[:"#{@commentable}_id"])
+      unless @commentable.classify.constantize.my.find_by_id(params[:"#{@commentable}_id"])
+        respond_to_related_not_found(@commentable) and return
+      end
     end
 
     respond_with(@comment)
-
-  rescue ActiveRecord::RecordNotFound # Kicks in if commentable asset was not found.
-    respond_to_related_not_found(@commentable, :js)
   end
 
   # GET /comments/1/edit                                                   AJAX
@@ -70,14 +54,10 @@ class CommentsController < ApplicationController
   def edit
     @comment = Comment.find(params[:id])
 
-    if @comment.commentable
-      @comment.commentable_type.constantize.my.find(@comment.commentable.id)
-    else
-      raise ActiveRecord::RecordNotFound
+    model, id = @comment.commentable_type, @comment.commentable_id
+    unless model.constantize.my.find_by_id(id)
+      respond_to_related_not_found(model.downcase)
     end
-
-  rescue ActiveRecord::RecordNotFound # Kicks in if commentable asset was not found.
-    respond_to_related_not_found(params[:comment][:commentable_type].downcase, :js, :xml)
   end
 
   # POST /comments
@@ -85,20 +65,18 @@ class CommentsController < ApplicationController
   # POST /comments.xml                                                     AJAX
   #----------------------------------------------------------------------------
   def create
-    @comment = Comment.new(params[:comment])
+    attributes = params[:comment] || {}
+    attributes.merge!(:user_id => current_user.id)
+    @comment = Comment.new(attributes)
 
     # Make sure commentable object exists and is accessible to the current user.
-    if @comment.commentable
-      @comment.commentable_type.constantize.my.find(@comment.commentable.id)
-    else
-      raise ActiveRecord::RecordNotFound
+    model, id = @comment.commentable_type, @comment.commentable_id
+    unless model.constantize.my.find_by_id(id)
+      respond_to_related_not_found(model.downcase)
     end
 
     @comment.save
     respond_with(@comment)
-
-  rescue ActiveRecord::RecordNotFound # Kicks in if commentable asset was not found.
-    respond_to_related_not_found(params[:comment][:commentable_type].downcase, :js, :xml)
   end
 
   # PUT /comments/1
@@ -109,9 +87,6 @@ class CommentsController < ApplicationController
     @comment = Comment.find(params[:id])
     @comment.update_attributes(params[:comment])
     respond_with(@comment)
-
-  rescue ActiveRecord::RecordNotFound
-    respond_to_not_found(:js, :json, :xml)
   end
 
   # DELETE /comments/1
@@ -122,16 +97,13 @@ class CommentsController < ApplicationController
     @comment = Comment.find(params[:id])
     @comment.destroy
     respond_with(@comment)
-
-  rescue ActiveRecord::RecordNotFound
-    respond_to_not_found(:html, :js, :json, :xml)
   end
 
-  private
+private
+
   #----------------------------------------------------------------------------
   def extract_commentable_name(params)
-    commentable = (params.keys & COMMENTABLE).first
-    commentable.sub("_id", "") if commentable
+    params.keys.detect {|x| x =~ /_id$/ }.try(:sub, /_id$/, '')
   end
 
   #----------------------------------------------------------------------------

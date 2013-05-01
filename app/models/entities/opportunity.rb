@@ -1,20 +1,8 @@
-# Fat Free CRM
-# Copyright (C) 2008-2011 by Michael Dvorkin
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
 #------------------------------------------------------------------------------
-
 # == Schema Information
 #
 # Table name: opportunities
@@ -48,33 +36,51 @@ class Opportunity < ActiveRecord::Base
   has_many    :tasks, :as => :asset, :dependent => :destroy#, :order => 'created_at DESC'
   has_many    :emails, :as => :mediator
 
+  serialize :subscribed_users, Set
+
   scope :state, lambda { |filters|
     where('stage IN (?)' + (filters.delete('other') ? ' OR stage IS NULL' : ''), filters)
   }
-  scope :created_by, lambda { |user| where('user_id = ?', user.id) }
+  scope :created_by,  lambda { |user| where('user_id = ?', user.id) }
   scope :assigned_to, lambda { |user| where('assigned_to = ?', user.id) }
-  scope :won,      where("opportunities.stage = 'won'")
-  scope :lost,     where("opportunities.stage = 'lost'")
-  scope :pipeline, where("opportunities.stage IS NULL OR (opportunities.stage != 'won' AND opportunities.stage != 'lost')")
+  scope :won,         where("opportunities.stage = 'won'")
+  scope :lost,        where("opportunities.stage = 'lost'")
+  scope :not_lost,    where("opportunities.stage <> 'lost'")
+  scope :pipeline,    where("opportunities.stage IS NULL OR (opportunities.stage != 'won' AND opportunities.stage != 'lost')")
+  scope :unassigned,  where("opportunities.assigned_to IS NULL")
 
   # Search by name OR id
   scope :text_search, lambda { |query|
-    query = query.gsub(/[^\w\s\-\.'\p{L}]/u, '').strip
     # postgresql does not like to compare string to integer field
     if query =~ /^\d+$/
+      query = query.gsub(/[^\w\s\-\.'\p{L}]/u, '').strip
       where('upper(name) LIKE upper(:name) OR opportunities.id = :id', :name => "%#{query}%", :id => query)
     else
-      where('upper(name) LIKE upper(:name)', :name => "%#{query}%")
+      search('name_cont' => query).result
     end
   }
 
+  scope :visible_on_dashboard, lambda { |user|
+    # Show opportunities which either belong to the user and are unassigned, or are assigned to the user and haven't been closed (won/lost)
+    where('(user_id = :user_id AND assigned_to IS NULL) OR assigned_to = :user_id', :user_id => user.id).where("opportunities.stage != 'won'").where("opportunities.stage != 'lost'")
+  }
+
+  scope :by_closes_on, order(:closes_on)
+  scope :by_amount, order('opportunities.amount DESC')
+
   uses_user_permissions
   acts_as_commentable
+  uses_comment_extensions
   acts_as_taggable_on :tags
-  has_paper_trail
+  has_paper_trail :ignore => [ :subscribed_users ]
   has_fields
   exportable
   sortable :by => [ "name ASC", "amount DESC", "amount*probability DESC", "probability DESC", "closes_on ASC", "created_at DESC", "updated_at DESC" ], :default => "created_at DESC"
+
+  has_ransackable_associations %w(account contacts tags campaign activities emails comments)
+  ransack_can_autocomplete
+
+  validates :stage, :inclusion => { :in => Setting.unroll(:opportunity_stage).map{|s| s.last.to_s } }
 
   validates_presence_of :name, :message => :missing_opportunity_name
   validates_numericality_of [ :probability, :amount, :discount ], :allow_nil => true
@@ -90,8 +96,8 @@ class Opportunity < ActiveRecord::Base
 
   # Default values provided through class methods.
   #----------------------------------------------------------------------------
-  def self.per_page ; 20     ; end
-  def self.outline  ; "long" ; end
+  def self.per_page ; 20 ; end
+  def self.default_stage; Setting[:opportunity_default_stage].try(:to_s) || 'prospecting'; end
 
   #----------------------------------------------------------------------------
   def weighted_amount
@@ -103,12 +109,13 @@ class Opportunity < ActiveRecord::Base
   def save_with_account_and_permissions(params)
     # Quick sanitization, makes sure Account will not search for blank id.
     params[:account].delete(:id) if params[:account][:id].blank?
-    account = Account.create_or_select_for(self, params[:account], params[:users])
+    account = Account.create_or_select_for(self, params[:account])
     self.account_opportunity = AccountOpportunity.new(:account => account, :opportunity => self) unless account.id.blank?
     self.account = account
-    self.contacts << Contact.find(params[:contact]) unless params[:contact].blank?
     self.campaign = Campaign.find(params[:campaign]) unless params[:campaign].blank?
-    self.save_with_permissions(params[:users])
+    result = self.save
+    self.contacts << Contact.find(params[:contact]) unless params[:contact].blank?
+    result
   end
 
   # Backend handler for [Update Opportunity] form (see opportunity/update).
@@ -117,13 +124,16 @@ class Opportunity < ActiveRecord::Base
     if params[:account] && (params[:account][:id] == "" || params[:account][:name] == "")
       self.account = nil # Opportunity is not associated with the account anymore.
     elsif params[:account]
-      account = Account.create_or_select_for(self, params[:account], params[:users])
+      account = Account.create_or_select_for(self, params[:account])
       if self.account != account and account.id.present?
         self.account_opportunity = AccountOpportunity.new(:account => account, :opportunity => self)
       end
     end
     self.reload
-    self.update_with_permissions(params[:opportunity], params[:users])
+    # Must set access before user_ids, because user_ids= method depends on access value.
+    self.access = params[:opportunity][:access] if params[:opportunity][:access]
+    self.attributes = params[:opportunity]
+    self.save
   end
 
   # Attach given attachment to the opportunity if it hasn't been attached already.
@@ -146,7 +156,7 @@ class Opportunity < ActiveRecord::Base
 
   # Class methods.
   #----------------------------------------------------------------------------
-  def self.create_for(model, account, params, users)
+  def self.create_for(model, account, params)
     opportunity = Opportunity.new(params)
 
     # Save the opportunity if its name was specified and account has no errors.
@@ -154,7 +164,7 @@ class Opportunity < ActiveRecord::Base
       # Note: opportunity.account = account doesn't seem to work here.
       opportunity.account_opportunity = AccountOpportunity.new(:account => account, :opportunity => opportunity) unless account.id.blank?
       if opportunity.access != "Lead" || model.nil?
-        opportunity.save_with_permissions(users)
+        opportunity.save
       else
         opportunity.save_with_model_permissions(model)
       end
@@ -184,4 +194,3 @@ class Opportunity < ActiveRecord::Base
   end
 
 end
-

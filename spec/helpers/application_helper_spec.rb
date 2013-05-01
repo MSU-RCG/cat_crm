@@ -1,3 +1,8 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 require File.expand_path(File.dirname(__FILE__) + '/../spec_helper')
 
 describe ApplicationHelper do
@@ -63,5 +68,19 @@ describe ApplicationHelper do
       helper.shown_on_landing_page?.should == false
     end
   end
+  
+  describe "current_view_name" do
+  
+    before(:each) do
+      @user = mock_model(User)
+      helper.stub!(:current_user).and_return(@user)
+      controller.stub!(:params).and_return({'action' => 'show', 'controller' => 'contacts'})
+    end
+  
+    it "should return the contact 'show' outline stored in the user preferences" do
+      @user.should_receive(:pref).and_return({:contacts_show_view => 'long'})
+      helper.current_view_name.should == 'long'
+    end
+  
+  end
 end
-

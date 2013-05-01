@@ -1,3 +1,8 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 
 describe "/home/index" do
@@ -8,7 +13,7 @@ describe "/home/index" do
   end
 
   it "should render [activity] template with @activities collection" do
-    assign(:activities, [ FactoryGirl.create(:version, :id => 42, :event => "update", :item => FactoryGirl.create(:account), :whodunnit => @current_user.id.to_s) ])
+    assign(:activities, [ FactoryGirl.create(:version, :id => 42, :event => "update", :item => FactoryGirl.create(:account), :whodunnit => current_user.id.to_s) ])
 
     render :template => 'home/index', :formats => [:js]
 
@@ -27,4 +32,3 @@ describe "/home/index" do
   end
 
 end
-

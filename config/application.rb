@@ -1,3 +1,8 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 require File.expand_path('../boot', __FILE__)
 
 require 'rails/all'
@@ -20,15 +25,25 @@ module FatFreeCRM
     # -- all .rb files in that directory are automatically loaded.
 
     # Models are organized in sub-directories
-    config.autoload_paths += Dir[Rails.root.join("app/models/**")] +
+    config.autoload_paths += Dir[Rails.root.join("app/models/**")] +                                                                 
                              Dir[Rails.root.join("app/controllers/entities")]
+    
+    # Prevent Field class from being reloading more than once as this clears registered customfields
+    config.autoload_once_paths += [File.expand_path("../app/models/fields/field.rb", __FILE__)]
 
     # Activate observers that should always be running.
-    config.active_record.observers = :lead_observer, :opportunity_observer, :task_observer unless ARGV.join.include?('assets:precompile')
+    unless ARGV.join.include?('assets:precompile')
+      config.active_record.observers = :lead_observer, :opportunity_observer, :task_observer, :entity_observer
+    end
 
     # Load development rake tasks (RSpec, Gem packaging, etc.)
     rake_tasks do
       Dir.glob(Rails.root.join('lib', 'development_tasks', '*.rake')).each {|t| load t }
+    end
+
+    # Add migrations from all engines
+    Railties.engines.each do |engine|
+      config.paths['db/migrate'] += engine.paths['db/migrate'].existent
     end
 
     # Only load the plugins named here, in the order given (default is alphabetical).

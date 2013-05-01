@@ -1,3 +1,8 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 
 describe "/contacts/_new" do
@@ -7,7 +12,7 @@ describe "/contacts/_new" do
     login_and_assign
     @account = FactoryGirl.create(:account)
     assign(:contact, Contact.new)
-    assign(:users, [ @current_user ])
+    assign(:users, [ current_user ])
     assign(:account, @account)
     assign(:accounts, [ @account ])
   end
@@ -17,7 +22,7 @@ describe "/contacts/_new" do
     view.should render_template(:partial => "contacts/_top_section")
     view.should render_template(:partial => "contacts/_extra")
     view.should render_template(:partial => "contacts/_web")
-    view.should render_template(:partial => "contacts/_permissions")
+    view.should render_template(:partial => "entities/_permissions")
 
     rendered.should have_tag("form[class=new_contact]")
   end
@@ -44,4 +49,3 @@ describe "/contacts/_new" do
   end
 
 end
-

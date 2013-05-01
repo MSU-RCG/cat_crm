@@ -1,11 +1,15 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 require 'paper_trail'
 
-Version.class_eval do
+Version.const_set :ASSETS, %w(all tasks campaigns leads accounts contacts opportunities comments emails)
+Version.const_set :EVENTS, %w(all_events create view update destroy)
+Version.const_set :DURATION, %w(one_hour one_day two_days one_week two_weeks one_month)
 
-  ASSETS   = %w(all tasks campaigns leads accounts contacts opportunities comments emails)
-  EVENTS   = %w(all_events create view update destroy)
-  DURATION = %w(one_hour one_day two_days one_week two_weeks one_month)
-  ENTITIES = %w(Account Campaign Contact Lead Opportunity)
+Version.class_eval do
 
   attr_accessible :related
   belongs_to :related, :polymorphic => true
@@ -43,8 +47,9 @@ Version.class_eval do
       includes(:item, :related, :user).
       where(({:item_type => options[:asset]} if options[:asset])).
       where(({:event     => options[:event]} if options[:event])).
-      where(({:whodunnit => options[:user]}  if options[:user])).
+      where(({:whodunnit => options[:user].to_s}  if options[:user])).
       where('versions.created_at >= ?', Time.zone.now - (options[:duration] || 2.days)).
+      limit(options[:max]).
       default_order
     end
 

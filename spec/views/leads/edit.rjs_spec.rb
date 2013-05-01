@@ -1,3 +1,8 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 
 describe "/leads/edit" do
@@ -5,8 +10,8 @@ describe "/leads/edit" do
 
   before do
     login_and_assign
-    assign(:lead, @lead = FactoryGirl.create(:lead, :status => "new", :user => @current_user))
-    assign(:users, [ @current_user ])
+    assign(:lead, @lead = FactoryGirl.create(:lead, :status => "new", :user => current_user))
+    assign(:users, [ current_user ])
     assign(:campaigns, [ FactoryGirl.create(:campaign) ])
   end
 
@@ -29,7 +34,7 @@ describe "/leads/edit" do
 
   it "edit: should hide previously open [Edit Lead] and replace it with lead partial" do
     params[:cancel] = nil
-    assign(:previous, previous = FactoryGirl.create(:lead, :user => @current_user))
+    assign(:previous, previous = FactoryGirl.create(:lead, :user => current_user))
 
     render
     rendered.should have_rjs("lead_#{previous.id}") do |rjs|
@@ -69,11 +74,10 @@ describe "/leads/edit" do
 
   it "edit from lead landing page: should not attempt to hide [Convert Lead] if the lead is already converted" do
     params[:cancel] = "false"
-    assign(:lead, FactoryGirl.create(:lead, :status => "converted", :user => @current_user))
+    assign(:lead, FactoryGirl.create(:lead, :status => "converted", :user => current_user))
 
     render
     rendered.should_not include('crm.hide_form("convert_lead"')
   end
 
 end
-

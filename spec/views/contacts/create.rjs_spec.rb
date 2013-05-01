@@ -1,3 +1,8 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 
 describe "/contacts/create" do
@@ -50,9 +55,8 @@ describe "/contacts/create" do
   describe "create failure" do
     it "create (failure): should re-render [create] template in :create_contact div" do
       assign(:contact, FactoryGirl.build(:contact, :first_name => nil)) # make it invalid
-      @current_user = FactoryGirl.create(:user)
       @account = FactoryGirl.create(:account)
-      assign(:users, [ @current_user ])
+      assign(:users, [ FactoryGirl.create(:user) ])
       assign(:account, @account)
       assign(:accounts, [ @account ])
 
@@ -66,4 +70,3 @@ describe "/contacts/create" do
   end
 
 end
-

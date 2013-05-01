@@ -1,9 +1,14 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 
 describe "/leads/promote" do
   before do
     login_and_assign
-    assign(:users, [ @current_user ])
+    assign(:users, [ current_user ])
     assign(:account, @account = FactoryGirl.create(:account))
     assign(:accounts, [ @account ])
     assign(:contact, FactoryGirl.create(:contact))
@@ -13,7 +18,7 @@ describe "/leads/promote" do
 
   describe "no errors :" do
     before do
-      assign(:lead, @lead = FactoryGirl.create(:lead, :status => "converted", :user => @current_user, :assignee => @current_user))
+      assign(:lead, @lead = FactoryGirl.create(:lead, :status => "converted", :user => current_user, :assignee => current_user))
     end
 
     describe "from lead landing page -" do
@@ -98,7 +103,7 @@ describe "/leads/promote" do
 
   describe "validation errors:" do
     before do
-      assign(:lead, @lead = FactoryGirl.create(:lead, :status => "new", :user => @current_user, :assignee => @current_user))
+      assign(:lead, @lead = FactoryGirl.create(:lead, :status => "new", :user => current_user, :assignee => current_user))
     end
 
     describe "from lead landing page -" do
@@ -146,9 +151,7 @@ describe "/leads/promote" do
     it "should handle new or existing account and set up calendar field" do
       render
       rendered.should include("crm.create_or_select_account")
-      rendered.should include('crm.date_select_popup("opportunity_closes_on")')
       rendered.should include('$("account_name").focus()')
     end
   end # errors
 end
-

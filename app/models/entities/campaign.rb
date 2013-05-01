@@ -1,20 +1,8 @@
-# Fat Free CRM
-# Copyright (C) 2008-2011 by Michael Dvorkin
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
 #------------------------------------------------------------------------------
-
 # == Schema Information
 #
 # Table name: campaigns
@@ -49,24 +37,27 @@ class Campaign < ActiveRecord::Base
   has_many    :opportunities, :dependent => :destroy, :order => "id DESC"
   has_many    :emails, :as => :mediator
 
+  serialize :subscribed_users, Set
+
   scope :state, lambda { |filters|
     where('status IN (?)' + (filters.delete('other') ? ' OR status IS NULL' : ''), filters)
   }
   scope :created_by, lambda { |user| where('user_id = ?' , user.id) }
   scope :assigned_to, lambda { |user| where('assigned_to = ?', user.id) }
 
-  scope :text_search, lambda { |query|
-    query = query.gsub(/[^\w\s\-\.'\p{L}]/u, '').strip
-    where('upper(name) LIKE upper(?)', "%#{query}%")
-  }
+  scope :text_search, lambda { |query| search('name_cont' => query).result }
 
   uses_user_permissions
   acts_as_commentable
+  uses_comment_extensions
   acts_as_taggable_on :tags
-  has_paper_trail
+  has_paper_trail :ignore => [ :subscribed_users ]
   has_fields
   exportable
   sortable :by => [ "name ASC", "target_leads DESC", "target_revenue DESC", "leads_count DESC", "revenue DESC", "starts_on DESC", "ends_on DESC", "created_at DESC", "updated_at DESC" ], :default => "created_at DESC"
+
+  has_ransackable_associations %w(leads opportunities tags activities emails comments tasks)
+  ransack_can_autocomplete
 
   validates_presence_of :name, :message => :missing_campaign_name
   validates_uniqueness_of :name, :scope => [ :user_id, :deleted_at ]
@@ -75,8 +66,7 @@ class Campaign < ActiveRecord::Base
 
   # Default values provided through class methods.
   #----------------------------------------------------------------------------
-  def self.per_page ; 20     ; end
-  def self.outline  ; "long" ; end
+  def self.per_page ; 20 ; end
 
   # Attach given attachment to the campaign if it hasn't been attached already.
   #----------------------------------------------------------------------------
@@ -119,4 +109,3 @@ class Campaign < ActiveRecord::Base
   end
 
 end
-

@@ -1,20 +1,8 @@
-# Fat Free CRM
-# Copyright (C) 2008-2011 by Michael Dvorkin
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
 #------------------------------------------------------------------------------
-
 # == Schema Information
 #
 # Table name: leads
@@ -55,7 +43,10 @@ class Lead < ActiveRecord::Base
   has_one     :contact, :dependent => :nullify # On destroy keep the contact, but nullify its lead_id
   has_many    :tasks, :as => :asset, :dependent => :destroy#, :order => 'created_at DESC'
   has_one     :business_address, :dependent => :destroy, :as => :addressable, :class_name => "Address", :conditions => "address_type='Business'"
+  has_many    :addresses, :dependent => :destroy, :as => :addressable, :class_name => "Address" # advanced search uses this
   has_many    :emails, :as => :mediator
+
+  serialize :subscribed_users, Set
 
   accepts_nested_attributes_for :business_address, :allow_destroy => true
 
@@ -67,20 +58,21 @@ class Lead < ActiveRecord::Base
   scope :created_by, lambda { |user| where('user_id = ?' , user.id) }
   scope :assigned_to, lambda { |user| where('assigned_to = ?' , user.id) }
 
-  scope :text_search, lambda { |query|
-    query = query.gsub(/[^\w\s\-\.'\p{L}]/u, '').strip
-    where('upper(first_name) LIKE upper(:s) OR upper(last_name) LIKE upper(:s) OR upper(company) LIKE upper(:m) OR upper(email) LIKE upper(:m)', :s => "#{query}%", :m => "%#{query}%")
-  }
+  scope :text_search, lambda { |query| search('first_name_or_last_name_or_company_or_email_cont' => query).result }
 
   uses_user_permissions
   acts_as_commentable
+  uses_comment_extensions
   acts_as_taggable_on :tags
-  has_paper_trail
+  has_paper_trail :ignore => [ :subscribed_users ]
   has_fields
   exportable
   sortable :by => [ "first_name ASC", "last_name ASC", "company ASC", "rating DESC", "created_at DESC", "updated_at DESC" ], :default => "created_at DESC"
 
-  validates_presence_of :first_name, :message => :missing_first_name
+  has_ransackable_associations %w(contact campaign tasks tags activities emails addresses comments)
+  ransack_can_autocomplete
+
+  validates_presence_of :first_name, :message => :missing_first_name if Setting.require_first_names
   validates_presence_of :last_name, :message => :missing_last_name if Setting.require_last_names
   validate :users_for_shared_access
 
@@ -89,29 +81,38 @@ class Lead < ActiveRecord::Base
 
   # Default values provided through class methods.
   #----------------------------------------------------------------------------
-  def self.per_page ; 20                  ; end
-  def self.outline  ; "long"              ; end
+  def self.per_page ; 20 ; end
   def self.first_name_position ; "before" ; end
 
   # Save the lead along with its permissions.
   #----------------------------------------------------------------------------
   def save_with_permissions(params)
     self.campaign = Campaign.find(params[:campaign]) unless params[:campaign].blank?
-    if self.access == "Campaign" && self.campaign # Copy campaign permissions.
+    if params[:lead][:access] == "Campaign" && self.campaign # Copy campaign permissions.
       save_with_model_permissions(Campaign.find(self.campaign_id))
     else
-      super(params[:users]) # invoke :save_with_permissions in plugin.
+      self.attributes = params[:leads]
+      save
     end
+  end
+
+  # Deprecated: see update_with_lead_counters
+  #----------------------------------------------------------------------------
+  def update_with_permissions(attributes, users = nil)
+    ActiveSupport::Deprecation.warn "lead.update_with_permissions is deprecated and may be removed from future releases, use user_ids and group_ids inside attributes instead and call lead.update_with_lead_counters"
+    update_with_lead_counters(attributes)
   end
 
   # Update lead attributes taking care of campaign lead counters when necessary.
   #----------------------------------------------------------------------------
-  def update_with_permissions(attributes, users)
+  def update_with_lead_counters(attributes)
     if self.campaign_id == attributes[:campaign_id] # Same campaign (if any).
-      super(attributes, users)                      # See lib/fat_free_crm/permissions.rb
+      self.attributes = attributes
+      self.save
     else                                            # Campaign has been changed -- update lead counters...
       decrement_leads_count                         # ..for the old campaign...
-      lead = super(attributes, users)               # Assign new campaign.
+      self.attributes = attributes                  # Assign new campaign.
+      lead = self.save
       increment_leads_count                         # ...and now for the new campaign.
       lead
     end
@@ -121,11 +122,11 @@ class Lead < ActiveRecord::Base
   # successful promotion Lead status gets set to :converted.
   #----------------------------------------------------------------------------
   def promote(params)
-    account     = Account.create_or_select_for(self, params[:account], params[:users])
-    opportunity = Opportunity.create_for(self, account, params[:opportunity], params[:users])
+    account     = Account.create_or_select_for(self, params[:account])
+    opportunity = Opportunity.create_for(self, account, params[:opportunity])
     contact     = Contact.create_for(self, account, opportunity, params)
 
-    return account, opportunity, contact
+    [account, opportunity, contact]
   end
 
   #----------------------------------------------------------------------------
@@ -162,7 +163,8 @@ class Lead < ActiveRecord::Base
   end
   alias :name :full_name
 
-  private
+private
+
   #----------------------------------------------------------------------------
   def increment_leads_count
     if self.campaign_id
@@ -182,6 +184,4 @@ class Lead < ActiveRecord::Base
   def users_for_shared_access
     errors.add(:access, :share_lead) if self[:access] == "Shared" && !self.permissions.any?
   end
-
 end
-

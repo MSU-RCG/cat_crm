@@ -1,124 +1,85 @@
-# Fat Free CRM
-# Copyright (C) 2008-2011 by Michael Dvorkin
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
 #------------------------------------------------------------------------------
-
 class EntitiesController < ApplicationController
   before_filter :require_user
   before_filter :set_current_tab, :only => [ :index, :show ]
-  after_filter  :update_recently_viewed, :only => :show
+  before_filter :set_view, :only => [ :index, :show, :redraw ]
+  
+  before_filter :set_options, :only => :index
+  before_filter :load_ransack_search, :only => :index
 
-  respond_to :html, :only => [ :index, :show, :auto_complete ]
-  respond_to :js
-  respond_to :json, :xml, :except => :edit
-  respond_to :atom, :csv, :rss, :xls, :only => :index
+  load_and_authorize_resource
 
-  helper_method :search
+  after_filter :update_recently_viewed, :only => :show
 
-  # Common auto_complete handler for all core controllers.
-  #----------------------------------------------------------------------------
-  def auto_complete
-    @query = params[:auto_complete_query]
-    @auto_complete = hook(:auto_complete, self, :query => @query, :user => @current_user)
-    if @auto_complete.empty?
-      @auto_complete = klass.my.text_search(@query).limit(10)
-    else
-      @auto_complete = @auto_complete.last
-    end
-    session[:auto_complete] = controller_name.to_sym
-    respond_to do |format|
-      format.any(:js, :html)   { render "shared/auto_complete", :layout => nil }
-      format.json { render :json => @auto_complete.inject({}){|h,a| h[a.id] = a.name; h } }
-    end
-  end
+  helper_method :entity, :entities
 
   # Common attach handler for all core controllers.
   #----------------------------------------------------------------------------
   def attach
-    model = klass.my.find(params[:id])
     @attachment = params[:assets].classify.constantize.find(params[:asset_id])
-    @attached = model.attach!(@attachment)
-    @account  = model.reload if model.is_a?(Account)
-    @campaign = model.reload if model.is_a?(Campaign)
+    @attached = entity.attach!(@attachment)
+    entity.reload
 
-    respond_to do |format|
-      format.js   { render "shared/attach" }
-      format.json { render :json => model.reload }
-      format.xml  { render :xml => model.reload }
-    end
-
-  rescue ActiveRecord::RecordNotFound
-    respond_to_not_found(:html, :js, :json, :xml)
+    respond_with(entity)
   end
 
   # Common discard handler for all core controllers.
   #----------------------------------------------------------------------------
   def discard
-    model = klass.my.find(params[:id])
     @attachment = params[:attachment].constantize.find(params[:attachment_id])
-    model.discard!(@attachment)
-    @account  = model.reload if model.is_a?(Account)
-    @campaign = model.reload if model.is_a?(Campaign)
+    entity.discard!(@attachment)
+    entity.reload
 
-    respond_to do |format|
-      format.js   { render "shared/discard" }
-      format.json { render :json => model.reload }
-      format.xml  { render :xml => model.reload }
+    respond_with(entity)
+  end
+
+  # Common subscribe handler for all core controllers.
+  #----------------------------------------------------------------------------
+  def subscribe
+    entity.subscribed_users += [current_user.id]
+    entity.save
+
+    respond_with(entity) do |format|
+      format.js { render 'subscription_update' }
     end
+  end
 
-  rescue ActiveRecord::RecordNotFound
-    respond_to_not_found(:html, :js, :json, :xml)
+  # Common unsubscribe handler for all core controllers.
+  #----------------------------------------------------------------------------
+  def unsubscribe
+    entity.subscribed_users -= [current_user.id]
+    entity.save
+
+    respond_with(entity) do |format|
+      format.js { render 'subscription_update' }
+    end
   end
 
   # GET /entities/contacts                                                 AJAX
   #----------------------------------------------------------------------------
   def contacts
-    @entity = klass.my.find(params[:id])
   end
 
   # GET /entities/leads                                                    AJAX
   #----------------------------------------------------------------------------
   def leads
-    @entity = klass.my.find(params[:id])
   end
 
   # GET /entities/opportunities                                            AJAX
   #----------------------------------------------------------------------------
   def opportunities
-    @entity = klass.my.find(params[:id])
   end
 
   # GET /entities/versions                                                 AJAX
   #----------------------------------------------------------------------------
   def versions
-    @entity = klass.my.find(params[:id])
   end
 
-  def timeline(asset)
-    (asset.comments + asset.emails).sort { |x, y| y.created_at <=> x.created_at }
-  end
-
-  # Controller instance method that responds to /controlled/tagged/tag request.
-  # It stores given tag as current query and redirect to index to display all
-  # records tagged with the tag.
   #----------------------------------------------------------------------------
-  def tagged
-    self.send(:current_query=, "#" << params[:id]) unless params[:id].blank?
-    redirect_to :action => "index"
-  end
-
   def field_group
     if @tag = Tag.find_by_name(params[:tag].strip)
       if @field_group = FieldGroup.find_by_tag_id_and_klass_name(@tag.id, klass.to_s)
@@ -129,58 +90,122 @@ class EntitiesController < ApplicationController
     render :text => ''
   end
 
-  private
+protected
 
-  def search
-    @search ||= begin
-      search = klass.search(params[:q])
-      search.build_grouping unless search.groupings.any?
-      search
+  #----------------------------------------------------------------------------
+  def entity=(entity)
+    instance_variable_set("@#{controller_name.singularize}", entity)
+  end
+
+  #----------------------------------------------------------------------------
+  def entity
+    instance_variable_get("@#{controller_name.singularize}")
+  end
+
+  #----------------------------------------------------------------------------
+  def entities=(entities)
+    instance_variable_set("@#{controller_name}", entities)
+  end
+
+  #----------------------------------------------------------------------------
+  def entities
+    instance_variable_get("@#{controller_name}") || klass.my
+  end
+  
+  def set_options
+    unless params[:cancel].true?
+      klass = controller_name.classify.constantize
+      action = params['action']
+      @per_page = current_user.pref[:"#{controller_name}_per_page"] || klass.per_page
+      @sort_by  = current_user.pref[:"#{controller_name}_sort_by"]  || klass.sort_by
     end
+  end
+
+private
+
+  def ransack_search
+    @ransack_search ||= load_ransack_search
+    @ransack_search.build_sort if @ransack_search.sorts.empty?
+    @ransack_search
   end
 
   # Get list of records for a given model class.
   #----------------------------------------------------------------------------
-  def get_list_of_records(klass, options = {})
-    items = klass.name.tableize
-    options[:query] ||= params[:query]                        if params[:query]
-    self.current_page = options[:page]                        if options[:page]
-    query, tags       = parse_query_and_tags(options[:query]) if options[:query]
+  def get_list_of_records(options = {})
+    options[:query]  ||= params[:query]                        if params[:query]
+    self.current_page  = options[:page]                        if options[:page]
+    query, tags        = parse_query_and_tags(options[:query])
     self.current_query = query
-
-    records = {
-      :user  => current_user,
-      :order => current_user.pref[:"#{items}_sort_by"] || klass.sort_by
-    }
-    pages = {
-      :page     => current_page,
-      :per_page => current_user.pref[:"#{items}_per_page"]
-    }
-
-    # Call the hook and return its output if any.
-    assets = hook(:"get_#{items}", self, :records => records, :pages => pages)
-    return assets.last unless assets.empty?
-
-    # Use default processing if no hooks are present. Note that comma-delimited
-    # export includes deleted records, and the pagination is enabled only for
-    # plain HTTP, Ajax and XML API requests.
+    advanced_search = params[:q].present?
     wants = request.format
-    filter = session[options[:filter]].to_s.split(',') if options[:filter]
 
-    scope = klass.my(records)
-    scope = scope.merge(search.result)
-    scope = scope.state(filter)                   if filter.present?
+    scope = entities.merge(ransack_search.result(:distinct => true))
+
+    # Get filter from session, unless running an advanced search
+    unless advanced_search
+      filter = session[:"#{controller_name}_filter"].to_s.split(',')
+      scope = scope.state(filter) if filter.present?
+    end
+
     scope = scope.text_search(query)              if query.present?
     scope = scope.tagged_with(tags, :on => :tags) if tags.present?
-    scope = scope.unscoped                        if wants.csv?
-    scope = scope.paginate(pages)                 if wants.html? || wants.js? || wants.xml?
+
+    # Ignore this order when doing advanced search
+    unless advanced_search
+      order = current_user.pref[:"#{controller_name}_sort_by"] || klass.sort_by
+      scope = scope.order(order)
+    end
+
+    @search_results_count = scope.count
+
+    # Pagination is disabled for xls and csv requests
+    unless (wants.xls? || wants.csv?)
+      per_page = if options[:per_page]
+        options[:per_page] == 'all' ? @search_results_count : options[:per_page]
+      else
+        current_user.pref[:"#{controller_name}_per_page"]
+      end
+      scope = scope.paginate(:page => current_page, :per_page => per_page)
+    end
+    
     scope
   end
 
   #----------------------------------------------------------------------------
   def update_recently_viewed
-    if item = instance_variable_get("@#{controller_name.singularize}")
-      item.send(item.class.versions_association_name).create(:event => :view, :whodunnit => PaperTrail.whodunnit)
+    entity.versions.create(:event => :view, :whodunnit => PaperTrail.whodunnit)
+  end
+
+  # Somewhat simplistic parser that extracts query and hash-prefixed tags from
+  # the search string and returns them as two element array, for example:
+  #
+  # "#real Billy Bones #pirate" => [ "Billy Bones", "real, pirate" ]
+  #----------------------------------------------------------------------------
+  def parse_query_and_tags(search_string)
+    return ['', ''] if search_string.blank?
+    query, tags = [], []
+    search_string.strip.split(/\s+/).each do |token|
+      if token.starts_with?("#")
+        tags << token[1 .. -1]
+      else
+        query << token
+      end
+    end
+    [ query.join(" "), tags.join(", ") ]
+  end
+
+  #----------------------------------------------------------------------------
+  def timeline(asset)
+    (asset.comments + asset.emails).sort { |x, y| y.created_at <=> x.created_at }
+  end
+
+  # Sets the current template view for entities in this context
+  #----------------------------------------------------------------------------
+  def set_view
+    if params['view']
+      controller = params['controller']
+      action = (params['action'] == 'show') ? 'show' : 'index' # create update redraw filter index actions all use index view
+      current_user.pref[:"#{controller}_#{action}_view"] = params['view']
     end
   end
 end

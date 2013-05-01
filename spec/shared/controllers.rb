@@ -1,6 +1,11 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 module SharedControllerSpecs
 
-  shared_examples_for "auto complete" do
+  shared_examples "auto complete" do
     before(:each) do
       @query = "Hello"
     end
@@ -21,13 +26,13 @@ module SharedControllerSpecs
       end
     end
 
-    it "should render shared/auto_complete template" do
+    it "should render application/_auto_complete template" do
       post :auto_complete, :auto_complete_query => @query
-      response.should render_template("shared/auto_complete")
+      response.should render_template("application/_auto_complete")
     end
   end
 
-  shared_examples_for "attach" do
+  shared_examples "attach" do
     it "should attach existing asset to the parent asset of different type" do
       xhr :put, :attach, :id => @model.id, :assets => @attachment.class.name.tableize, :asset_id => @attachment.id
       @model.send(@attachment.class.name.tableize).should include(@attachment)
@@ -39,7 +44,7 @@ module SharedControllerSpecs
       if @model.is_a?(Account) && @attachment.respond_to?(:account) # Skip Tasks...
         assigns[:account].should == @attachment.reload.account
       end
-      response.should render_template("shared/attach")
+      response.should render_template("entities/attach")
     end
 
     it "should not attach the asset that is already attached" do
@@ -51,7 +56,7 @@ module SharedControllerSpecs
 
       xhr :put, :attach, :id => @model.id, :assets => @attachment.class.name.tableize, :asset_id => @attachment.id
       assigns[:attached].should == nil
-      response.should render_template("shared/attach")
+      response.should render_template("entities/attach")
     end
 
     it "should display flash warning when the model is no longer available" do
@@ -70,7 +75,7 @@ module SharedControllerSpecs
     end
   end
 
-  shared_examples_for "discard" do
+  shared_examples "discard" do
     it "should discard the attachment without deleting it" do
       xhr :post, :discard, :id => @model.id, :attachment => @attachment.class.name, :attachment_id => @attachment.id
       assigns[:attachment].should == @attachment.reload                     # The attachment should still exist.
@@ -78,7 +83,7 @@ module SharedControllerSpecs
       assigns[:account].should == @model if @model.is_a?(Account)
       assigns[:campaign].should == @model if @model.is_a?(Campaign)
 
-      response.should render_template("shared/discard")
+      response.should render_template("entities/discard")
     end
 
     it "should display flash warning when the model is no longer available" do
@@ -97,6 +102,4 @@ module SharedControllerSpecs
       response.body.should == "window.location.reload();"
     end
   end
-
 end
-

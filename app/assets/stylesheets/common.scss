@@ -1,20 +1,8 @@
-// Fat Free CRM
-// Copyright (C) 2008-2011 by Michael Dvorkin
+// Copyright (c) 2008-2013 Michael Dvorkin and contributors.
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+// Fat Free CRM is freely distributable under the terms of MIT license.
+// See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
 //------------------------------------------------------------------------------
-
 $color_title: #342d7e;
 $color_subtitle: darkslateblue;
 $sidebar_width: 210px;
@@ -28,6 +16,7 @@ $sidebar_width: 210px;
     size: 17px;
     weight: bold; };
   padding-bottom: 2px;
+  margin-top: 6px;
   img {
     position: relative;
     top: 2px; } }
@@ -35,7 +24,15 @@ $sidebar_width: 210px;
 .title_tools {
   font-size: 12px;
   float: right;
-  margin: 4px 0px 0px 0px; }
+  margin: 0;
+  margin-top: 4px;
+
+  .sorting_options, .create_asset {
+    margin-left: 24px;
+    display: inline-block;
+    vertical-align: top;
+  }
+}
 
 .subtitle {
   border-bottom: 1px silver solid;
@@ -50,8 +47,13 @@ $sidebar_width: 210px;
   a:link, a:visited {
     color: $color_subtitle;
     text-decoration: none; }
-  ahover: {
-    background: none; }; }
+  a:hover {
+    background: none; };
+  &.show_attributes {
+    margin-top: 6px; } }
+
+.subtitle_inline_info {
+  margin-left: 5px }
 
 .subtitle_tools {
   font-size: 11px;
@@ -137,10 +139,14 @@ $sidebar_width: 210px;
 .top {
   margin: 5px 0px 0px 0px; }
 
-.req {
+.req, label.required {
   background: url("/assets/asterisk.gif") no-repeat scroll center right transparent;
   color: navy;
   display: inline-block; }
+
+.required label {
+  padding: 0px 8px 0px 0px;
+}
 
 .intro {
   color: dimgray;
@@ -148,7 +154,7 @@ $sidebar_width: 210px;
   padding-top: 5px; }
 
 .section {
-  background: whitesmoke;
+  background-color: whitesmoke;
   color: #3f3f3f;
   margin: 0px 0px 2px 0px;
   padding: 4px 15px 8px 15px;
@@ -316,12 +322,6 @@ $sidebar_width: 210px;
     margin: 3px 0px 0px 0px;
     padding: 3px;
     width: 500px; }
-  textarea {
-    font-size: 11px;
-    height: 110px;
-    margin: 3px 0px 0px 0px;
-    padding: 3px;
-    width: 500px; }
   .gravatar {
     float: left;
     margin: 3px 10px 3px 3px; }
@@ -335,7 +335,19 @@ $sidebar_width: 210px;
     padding: 0px;
     margin: -10px 0px 0px 36px;
     p {
-      margin: 10px 0px 0px 0px; } } }
+      margin: 10px 0px 0px 0px; } }
+  .comment_subscriptions {
+    margin-top: 7px;
+    margin-left: 4px;
+    a {
+      font-size: 11px; } } }
+
+.comment textarea, textarea#comment_body {
+  font-size: 11px;
+  height: 110px;
+  margin: 3px 0px 0px 0px;
+  padding: 3px;
+  width: 500px; }
 
 // Avoid collision with .email CSS class which is used to display Task category strip.
 .mail {
@@ -418,7 +430,7 @@ $sidebar_width: 210px;
 // Two-row lists.
 //------------------------------------------------------------------------------
 .list {
-  padding: 8px 0px 0px 0px;
+  padding: 8px 0px 7px 0px;
   li {
     border-bottom: 1px silver dotted;
     clear: both;
@@ -435,16 +447,7 @@ $sidebar_width: 210px;
     dt {
       color: #3f3f3f;
       font-size: 11px;
-      padding: 2px 0px 0px 0px; }
-    dt a:link, dt a:visited {
-      color: #3f3f3f;
-      font-weight: bold;
-      text-decoration: none; }
-    dt a:hover {
-      background: dimgray;
-      color: white;
-      font-weight: bold;
-      text-decoration: none; } } }
+      padding: 2px 0px 0px 0px; } } }
 
 // Sidebar, filters, and selectors.
 //------------------------------------------------------------------------------
@@ -455,7 +458,17 @@ $sidebar_width: 210px;
   -moz-border-radius: 4px;
   -webkit-border-radius: 4px;
   -moz-box-shadow: 2px 2px 8px #bbbbbb, -2px 0px 8px #bbbbbb;
-  -webkit-box-shadow: 2px 2px 8px #bbbbbb, -2px 0px 8px #bbbbbb; }
+  -webkit-box-shadow: 2px 2px 8px #bbbbbb, -2px 0px 8px #bbbbbb;
+
+  .caption {
+    border-bottom: 1px grey solid;
+    color: navy;
+    font: {
+      size: 12px;
+      weight: bold; };
+    margin: 4px 0px 5px 0px;
+    padding: 2px 0px 2px 0px; }
+  }
 
 .filters {
   h4 {
@@ -484,14 +497,6 @@ $sidebar_width: 210px;
       font-size: 11px; }
     &.last {
       border-bottom: none; } }
-  .caption {
-    border-bottom: 1px grey solid;
-    color: navy;
-    font: {
-      size: 12px;
-      weight: bold; };
-    margin: 4px 0px 2px 0px;
-    padding: 2px 0px 2px 0px; }
   &#recently {
     background: floralwhite; }
   &#summary {
@@ -642,7 +647,7 @@ span.handle img {
 
 .tags, .list li dt .tags {
   margin-top: 4px;
-  a:link, a:visited {
+  a:link, a:visited, li {
     background-color: #eaeaea;
     color: #333333;
     font-weight: normal;
@@ -660,7 +665,11 @@ span.handle img {
     -webkit-border-radius: 3px;
     border-radius: 3px; }
   a:hover {
-    background: #dadada; } }
+    background: #dadada; }
+  li {
+    display:inline;
+  }
+}
 
 .field_group .list {
   padding-bottom: 30px; }
@@ -684,8 +693,6 @@ span.handle img {
 .fields .title {
   margin-bottom: 12px; }
 
-.remove_fields img {
-  vertical-align: text-bottom; }
 
 ul.tools {
   display: inline;
@@ -712,3 +719,27 @@ ul.tools {
   background-color: seashell;
   .tools {
     visibility: visible; } }
+
+
+table.asset_attributes {
+  width: 100%;
+  border-spacing: 4px;
+  td, th {
+    border-bottom: 1px dotted silver;
+    vertical-align: top;
+    text-align: left;
+  }
+  th {
+    font-weight: bold;
+    width: 18%;
+    padding-right: 7px;
+    text-align: right;
+  }
+  td {
+    width: 32%;
+    color: #202020;
+  }
+  td.last, th.last {
+    border-bottom: none;
+  }
+}

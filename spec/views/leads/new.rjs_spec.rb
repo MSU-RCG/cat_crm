@@ -1,3 +1,8 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 
 describe "/leads/new" do
@@ -6,8 +11,8 @@ describe "/leads/new" do
   before do
     login_and_assign
     @campaign = FactoryGirl.create(:campaign)
-    assign(:lead, Lead.new(:user => @current_user))
-    assign(:users, [ @current_user ])
+    assign(:lead, Lead.new(:user => current_user))
+    assign(:users, [ current_user ])
     assign(:campaign, @campaign)
     assign(:campaigns, [ @campaign ])
   end
@@ -16,13 +21,6 @@ describe "/leads/new" do
     render
 
     rendered.should include('crm.flick("empty", "toggle")')
-  end
-
-  it "should hide options form when called from Leads index" do
-    controller.request.env["HTTP_REFERER"] = "http://localhost/leads"
-    render
-
-    rendered.should include('crm.hide_form("options")')
   end
 
   describe "new lead" do
@@ -48,5 +46,3 @@ describe "/leads/new" do
   end
 
 end
-
-

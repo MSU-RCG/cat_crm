@@ -1,3 +1,8 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 
 describe "/opportunities/create" do
@@ -86,9 +91,7 @@ describe "/opportunities/create" do
       end
       rendered.should include('$("create_opportunity").visualEffect("shake"')
       rendered.should include("crm.create_or_select_account")
-      rendered.should include("crm.date_select_popup")
     end
   end
 
 end
-

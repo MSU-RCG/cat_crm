@@ -1,27 +1,15 @@
-// Fat Free CRM
-// Copyright (C) 2008-2011 by Michael Dvorkin
+// Copyright (c) 2008-2013 Michael Dvorkin and contributors.
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+// Fat Free CRM is freely distributable under the terms of MIT license.
+// See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
 //------------------------------------------------------------------------------
-
 $color_header: skyblue;
 $color_header_background: #1e4262;
 $color_logo: greenyellow;
 $color_tab: white;
 $color_tab_background: #466bb1;
-$color_active_tab: navy;
-$color_active_tab_background: azure;
+$color_active_tab: black;
+$color_active_tab_background: #E5E5E5;
 $color_hover_tab: navy;
 $color_hover_tab_background: #97baff;
 $size_tab_height: 26px;
@@ -46,7 +34,7 @@ $color_footer: grey;
       color: lightyellow;
       padding: 1px 4px 2px 4px;
       text-decoration: none;
-      &hover {
+      &:hover {
         background: $color_header_background;
         color: yellow; } }
     a.selected {
@@ -75,14 +63,14 @@ $color_footer: grey;
         padding: 0px 0px 4px 0px;
         &.selected {
           color: navy; }
-        &hover {
+        &:hover {
           background: steelblue; } } }
     #jumpbox_label {
       color: white; }
     input {
       margin: 2px 0px 0px 0px; } } }
 
-#tabs {
+.tabs {
   background: $color_header_background;
   height: $size_tab_height;
   padding: 0px;
@@ -126,4 +114,5 @@ $color_footer: grey;
 #footer {
   color: $color_footer;
   font-size: 10px;
-  padding: 0px 0px 0px 16px; }
+  padding: 0px 0px 0px 16px;
+  text-align: center; }

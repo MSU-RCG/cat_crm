@@ -1,3 +1,8 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 # == Schema Information
 #
 # Table name: preferences
@@ -42,6 +47,11 @@ describe Preference do
       @preference = FactoryGirl.create(:preference, :user => FactoryGirl.create(:user), :name => "thingymabob", :value => @magoody)
       @user.preference[:thingymabob].should == nil
     end
+    
+    it "should not fail is user is nil" do
+      @preference = FactoryGirl.create(:preference, :user => nil, :name => "thingymabob", :value => @magoody)
+      @preference[:thingymabob].should == nil
+    end
   end
 
   describe "set user preference" do
@@ -57,4 +67,3 @@ describe Preference do
     end
   end
 end
-

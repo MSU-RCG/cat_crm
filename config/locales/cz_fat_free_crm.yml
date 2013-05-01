@@ -622,9 +622,9 @@ cz:
 
   # Dropbox.
   #----------------------------------------------------------------------------
-  dropbox_ack_subject: dropbox - přidaný email - %{subject}
-  dropbox_ack_intro: Úspěšně přidaný email jste odeslal do dropboxu
-  dropbox_ack_to: Přidáno do
+  dropbox_notification_subject: dropbox - přidaný email - %{subject}
+  dropbox_notification_intro: Úspěšně přidaný email jste odeslal do dropboxu
+  dropbox_notification_to: Přidáno do
   subject: Předmět
   body: Tělo
 
@@ -662,16 +662,6 @@ cz:
     formats:
       mmddhhss: "%e %b v %H:%M"
       mmddyyyy_hhmm: "%Y-%m-%d %H:%M"
-
-  calendar_date_select:
-    ok: OK
-    now: Nyní
-    today: Dnes
-    clear: Smazat
-
-  # If you need custom format look at
-  # http://code.google.com/p/calendardateselect/wiki/ChangingDateFormatCustom
-  calendar_date_select_format: iso_date
 
   # will_paginate translations copied for 'en-US'
   #----------------------------------------------------------------------------

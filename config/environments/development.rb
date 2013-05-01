@@ -1,3 +1,8 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 if defined?(FatFreeCRM::Application)
   FatFreeCRM::Application.configure do
     # Settings specified here will take precedence over those in config/application.rb
@@ -15,7 +20,7 @@ if defined?(FatFreeCRM::Application)
     config.action_controller.perform_caching = false
 
     # Don't care if the mailer can't send
-    config.action_mailer.raise_delivery_errors = false
+    config.action_mailer.raise_delivery_errors = true
 
     # Print deprecation notices to the Rails logger
     config.active_support.deprecation = :log
@@ -35,5 +40,6 @@ if defined?(FatFreeCRM::Application)
 
     # Expands the lines which load the assets
     config.assets.debug = true
+
   end
 end

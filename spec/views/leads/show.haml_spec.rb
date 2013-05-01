@@ -1,3 +1,8 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 
 describe "/leads/show" do
@@ -6,7 +11,7 @@ describe "/leads/show" do
   before do
     login_and_assign
     assign(:lead, @lead = FactoryGirl.create(:lead, :id => 42))
-    assign(:users, [ @current_user ])
+    assign(:users, [ current_user ])
     assign(:comment, Comment.new)
     assign(:timeline, [ FactoryGirl.create(:comment, :commentable => @lead) ])
   end
@@ -21,4 +26,3 @@ describe "/leads/show" do
   end
 
 end
-

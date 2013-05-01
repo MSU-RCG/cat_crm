@@ -1,3 +1,8 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 # == Schema Information
 #
 # Table name: users
@@ -69,7 +74,7 @@ describe User do
 
     it "should not destroy the user if she owns a comment" do
       login
-      account = FactoryGirl.create(:account, :user => @current_user)
+      account = FactoryGirl.create(:account, :user => current_user)
       FactoryGirl.create(:comment, :user => @user, :commentable => account)
       @user.destroy
       lambda { User.find(@user) }.should_not raise_error(ActiveRecord::RecordNotFound)
@@ -78,15 +83,15 @@ describe User do
 
     it "should not destroy the current user" do
       login
-      @current_user.destroy
-      lambda { @current_user.reload }.should_not raise_error(ActiveRecord::RecordNotFound)
-      @current_user.destroyed?.should == false
+      current_user.destroy
+      lambda { current_user.reload }.should_not raise_error(ActiveRecord::RecordNotFound)
+      current_user.should_not be_destroyed
     end
 
     it "should destroy the user" do
       @user.destroy
       lambda { User.find(@user) }.should raise_error(ActiveRecord::RecordNotFound)
-      @user.destroyed?.should == true
+      @user.should be_destroyed
     end
 
     it "once the user gets deleted all her permissions must be deleted too" do
@@ -109,13 +114,61 @@ describe User do
   it "should set suspended timestamp upon creation if signups need approval and the user is not an admin" do
     Setting.stub(:user_signup).and_return(:needs_approval)
     @user = FactoryGirl.create(:user, :suspended_at => nil)
-    @user.suspended?.should == true
+    @user.should be_suspended
   end
 
   it "should not set suspended timestamp upon creation if signups need approval and the user is an admin" do
     Setting.stub(:user_signup).and_return(:needs_approval)
     @user = FactoryGirl.create(:user, :admin => true, :suspended_at => nil)
-    @user.suspended?.should == false
+    @user.should_not be_suspended
+  end
+
+  context "scopes" do
+    describe "have_assigned_opportunities" do
+      before :each do
+        @user1 = FactoryGirl.create(:user)
+        FactoryGirl.create(:opportunity, :assignee => @user1, :stage => 'analysis')
+
+        @user2 = FactoryGirl.create(:user)
+
+        @user3 = FactoryGirl.create(:user)
+        FactoryGirl.create(:opportunity, :assignee => @user3, :stage => 'won')
+
+        @user4 = FactoryGirl.create(:user)
+        FactoryGirl.create(:opportunity, :assignee => @user4, :stage => 'lost')
+      end
+
+      it "includes users with assigned opportunities" do
+        User.have_assigned_opportunities.should include(@user1)
+      end
+
+      it "excludes users without any assigned opportunities" do
+        User.have_assigned_opportunities.should_not include(@user2)
+      end
+
+      it "excludes users with opportunities that have been won or lost" do
+        User.have_assigned_opportunities.should_not include(@user3)
+        User.have_assigned_opportunities.should_not include(@user4)
+      end
+    end
+  end
+
+  context "instance methods" do
+    describe "assigned_opportunities" do
+      before :each do
+        @user = FactoryGirl.create(:user)
+        @opportunity1 = FactoryGirl.create(:opportunity, :assignee => @user)
+        @opportunity2 = FactoryGirl.create(:opportunity, :assignee => FactoryGirl.create(:user))
+      end
+
+      it "includes opportunities assigned to user" do
+        @user.assigned_opportunities.should include(@opportunity1)
+      end
+
+      it "does not include opportunities assigned to another user" do
+        @user.assigned_opportunities.should_not include(@opportunity2)
+      end
+    end
   end
 
   describe "Setting I18n.locale" do
@@ -157,4 +210,3 @@ describe User do
     end
   end
 end
-

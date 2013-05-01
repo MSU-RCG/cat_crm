@@ -1,20 +1,8 @@
-# Fat Free CRM
-# Copyright (C) 2008-2011 by Michael Dvorkin
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
 #------------------------------------------------------------------------------
-
 # == Schema Information
 #
 # Table name: preferences
@@ -36,7 +24,7 @@ class Preference < ActiveRecord::Base
     return super(name) if name.to_s == "user_id" # get the value of belongs_to
 
     return cached_prefs[name.to_s] if cached_prefs.has_key?(name.to_s)
-    cached_prefs[name.to_s] = if (pref = Preference.find_by_name_and_user_id(name.to_s, self.user.id))
+    cached_prefs[name.to_s] = if (self.user.present? && pref = Preference.find_by_name_and_user_id(name.to_s, self.user.id))
       Marshal.load(Base64.decode64(pref.value))
     end
   end
@@ -59,4 +47,3 @@ class Preference < ActiveRecord::Base
   end
 
 end
-

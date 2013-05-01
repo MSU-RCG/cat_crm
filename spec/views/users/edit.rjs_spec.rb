@@ -1,3 +1,8 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 
 describe "/users/edit" do
@@ -5,7 +10,7 @@ describe "/users/edit" do
 
   before do
     login_and_assign
-    assign(:user, @user = @current_user)
+    assign(:user, @user = current_user)
   end
 
   it "cancel: should hide [Edit Profile] form and restore title" do
@@ -29,4 +34,3 @@ describe "/users/edit" do
   end
 
 end
-

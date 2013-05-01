@@ -1,3 +1,8 @@
+# Copyright (c) 2008-2013 Michael Dvorkin and contributors.
+#
+# Fat Free CRM is freely distributable under the terms of MIT license.
+# See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
+#------------------------------------------------------------------------------
 # Initialize chosen for multiselect tag list
 crm.chosen_taglist = (asset, controller, id)->
   new Chosen $(asset + '_tag_list'), {
@@ -8,8 +13,6 @@ crm.chosen_taglist = (asset, controller, id)->
       crm.remove_field_group(tag)
   }
 
-
-# Ensures initialization of ajaxChosen account selector
 crm.ensure_chosen_account = ->
   unless $("account_id_chzn")
     new ajaxChosen $("account_id"), {
@@ -20,9 +23,26 @@ crm.ensure_chosen_account = ->
       query_key: "auto_complete_query"
     }
 
+(($j) ->
+  
+  # Prefer standard select2 dropdown for non-Ajaxy selectboxes
+  add_select2_boxes = ->
+    $j("select[name*='assigned_to'], select[name*='[country]'], .chzn-select" ).each ->
+      $j(this).select2()
 
-# Initialize chosen select lists for certain fields
-crm.init_chosen_fields = ->
-  ['assigned_to', '[country]'].each (field) ->
-    $$("select[name*='"+field+"']").each (el) ->
-      new Chosen el, { allow_single_deselect: true }
+  # Apply pop up to merge links when document is loaded
+  $j(document).ready ->
+    add_select2_boxes()
+
+  # Apply pop up to merge links when jquery event (e.g. search) occurs
+  $j(document).ajaxComplete ->
+    add_select2_boxes()
+
+  # Apply pop up to merge links when protoype event (e.g. cancel edit) occurs
+  Ajax.Responders.register({
+    onComplete: ->
+      add_select2_boxes()
+
+  })
+
+) (jQuery)

@@ -1,53 +1,15 @@
-// Fat Free CRM
-// Copyright (C) 2008-2011 by Michael Dvorkin
+// Copyright (c) 2008-2013 Michael Dvorkin and contributors.
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+// Fat Free CRM is freely distributable under the terms of MIT license.
+// See MIT-LICENSE file or http://www.opensource.org/licenses/mit-license.php
 //------------------------------------------------------------------------------
-
 var crm = {
 
   EXPANDED      : "&#9660;",
   COLLAPSED     : "&#9658;",
-  request       : null,
+  searchRequest : null,
   autocompleter : null,
   base_url      : "",
-
-  //----------------------------------------------------------------------------
-  date_select_popup: function(id, dropdown_id, show_time) {
-    $(id).observe("focus", function() {
-      if (!$(id).calendar_was_shown) {    // The field recieved initial focus, show the calendar.
-        var calendar = new CalendarDateSelect(this, { month_year: "label",  year_range: 10, time: show_time, before_close: function() { this.calendar_was_shown = true } });
-        if (dropdown_id) {
-          calendar.buttons_div.build("span", { innerHTML: " | ", className: "button_seperator" });
-          calendar.buttons_div.build("a", { innerHTML: "Back to List", href: "#", onclick: function() {
-            calendar.close();                   // Hide calendar popup.
-            $(id).hide();                       // Hide date edit field.
-            $(dropdown_id).show();              // Show dropdown.
-            $(dropdown_id).selectedIndex = 0;   // Select first dopdown item.
-            $(id).update("");                   // Reset date field value.
-            return false;
-          }.bindAsEventListener(this) });
-        }
-      } else {
-        $(id).calendar_was_shown = null;  // Focus is back from the closed calendar, make it show up again.
-      }
-    });
-
-    $(id).observe("blur", function() {
-      $(id).calendar_was_shown = null;    // Get the calendar ready if we loose focus.
-    });
-  },
 
   //----------------------------------------------------------------------------
   find_form: function(class_name) {
@@ -71,14 +33,14 @@ var crm = {
   hide_form: function(id) {
     if($('facebook-list')) $('facebook-list').remove();
     var arrow = $(id + "_arrow") || $("arrow");
-    arrow.update(this.COLLAPSED);
+    if (arrow) arrow.update(this.COLLAPSED);
     $(id).hide().update("").setStyle({height: 'auto'});
   },
 
   //----------------------------------------------------------------------------
   show_form: function(id) {
     var arrow = $(id + "_arrow") || $("arrow");
-    arrow.update(this.EXPANDED);
+    if (arrow) arrow.update(this.EXPANDED);
     Effect.BlindDown(id, { duration: 0.25, afterFinish: function() {
         var input = $(id).down("input[type=text]");
         if (input) input.focus();
@@ -317,7 +279,7 @@ var crm = {
   //----------------------------------------------------------------------------
   reschedule_task: function(id, bucket) {
     $("task_bucket").value = bucket;
-    $("edit_task_" + id).onsubmit();
+    $$('#edit_task_' + id + ' input[type="submit"]')[0].click();
   },
 
   //----------------------------------------------------------------------------
@@ -348,6 +310,7 @@ var crm = {
   },
 
   //----------------------------------------------------------------------------
+  // Will be deprecated soon: html5 placeholder replaced it on address fields
   show_hint: function(el, hint) {
     if (el.value == '') {
       el.value = hint;
@@ -357,6 +320,7 @@ var crm = {
   },
 
   //----------------------------------------------------------------------------
+  // Will be deprecated soon: html5 placeholder replaced it on address fields
   hide_hint: function(el, value) {
     if (arguments.length == 2) {
       el.value = value;
@@ -370,6 +334,7 @@ var crm = {
   },
 
   //----------------------------------------------------------------------------
+  // Will be deprecated soon: html5 placeholder replaced it on address fields
   clear_all_hints: function() {
     $$("input[hint=true]").each( function(field) {
       field.value = '';
@@ -398,24 +363,25 @@ var crm = {
   },
 
   //----------------------------------------------------------------------------
+
   search: function(query, controller) {
-    if (!this.request) {
-      var list = controller;          // ex. "users"
-      if (list.indexOf("/") >= 0) {   // ex. "admin/users"
-        list = list.split("/")[1];
-      }
-      $("loading").show();
-      $(list).setStyle({ opacity: 0.4 });
-      new Ajax.Request(this.base_url + "/" + controller, {
-        method     : "get",
-        parameters : { query : query },
-        onSuccess  : function() {
-          $("loading").hide();
-          $(list).setStyle({ opacity: 1 });
-        },
-        onComplete : (function() { this.request = null; }).bind(this)
-      });
+    var list = controller;          // ex. "users"
+    if (list.indexOf("/") >= 0) {   // ex. "admin/users"
+      list = list.split("/")[1];
     }
+    $("loading").show();
+    $(list).setStyle({ opacity: 0.4 });
+    if (this.searchRequest && this.searchRequest.readyState != -4) { this.searchRequest.abort(); }
+    this.searchRequest = jQuery.ajax({
+      url: this.base_url + "/" + controller + '.js',
+      type: 'GET',
+      data: { query : query },
+      success  : function() {
+        $("loading").hide();
+        $(list).setStyle({ opacity: 1 });
+        this.searchRequest = null;
+      }
+    });
   },
 
   //----------------------------------------------------------------------------
@@ -439,6 +405,21 @@ var crm = {
     }
     this.autocompleter = new Ajax.Autocompleter("auto_complete_query", "auto_complete_dropdown", this.base_url + "/" + controller + "/auto_complete", {
       frequency: 0.25,
+      parameters: (related) ? ('related=' + related) : null,
+      onShow: function(element, update) {
+        // overridding onShow to include a fix for IE browsers
+        // see https://prototype.lighthouseapp.com/projects/8887/tickets/263-displayinline-fixes-positioning-of-autocomplete-results-div-in-ie8
+        update.style.display = (Prototype.Browser.IE) ? 'inline':'absolute';
+        // below is default onShow from controls.js
+        if(!update.style.position || update.style.position=='absolute') {
+          update.style.position = 'absolute';
+          Position.clone(element, update, {
+            setHeight: false,
+            offsetTop: element.offsetHeight
+          });
+        }
+        Effect.Appear(update,{duration:0.15});
+      },
       afterUpdateElement: function(text, el) {
         if (el.id) {      // Autocomplete entry found.
           if (related) {  // Attach to related asset.
@@ -482,6 +463,11 @@ document.observe("dom:loaded", function() {
       if (el.match('.pagination a')) {
         el.up('.pagination').update(createSpinner());
         new Ajax.Request(el.href, { method: 'get' });
+        e.stop();
+      }
+      if (el.match('.per_page_options a')) {
+        el.up('.per_page_options').update(createSpinner());
+        new Ajax.Request(el.href, { method: 'post' });
         e.stop();
       }
     });
