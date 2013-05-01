@@ -1,11 +1,11 @@
-$:.unshift(File.expand_path('./lib', ENV['rvm_path'])) # Add RVM's lib directory to the load path.
-require "rvm/capistrano"                  # Load RVM's capistrano plugin.
+require "rvm/capistrano"
 require "bundler/capistrano"
 
 set :rvm_ruby_string, 'ruby-1.9.2-p180@passenger'
 set :application, "crm"
 set :branch, "production"
 set :deploy_via, :remote_cache
+set :rvm_type, :system
 
 set :scm, :git
 set :repository,  "git://github.com/MSU-RCG/cat_crm.git"
