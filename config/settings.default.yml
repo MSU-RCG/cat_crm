@@ -278,6 +278,7 @@ lead_status:
   - :new
   - :contacted
   - :converted
+    :legacy
   - :rejected
 
 lead_status_color:
