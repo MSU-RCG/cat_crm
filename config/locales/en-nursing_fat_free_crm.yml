@@ -49,6 +49,7 @@ en-nursing:
   new: New
   contacted: Contacted
   converted: Converted
+  legacy: Legacy
   rejected: Rejected
 
   cold_call: Cold Call
