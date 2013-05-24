@@ -288,15 +288,17 @@ lead_status_color:
   :rejected  : OrangeRed
 
 lead_source:
-  - :campaign
-  - :cold_call
-  - :conference
-  - :online
-  - :referral
-  - :self
-  - :web
-  - :word_of_mouth
-  - :other
+  - :freshman
+  - :transfer
+  # - :campaign
+  # - :cold_call
+  # - :conference
+  # - :online
+  # - :referral
+  # - :self
+  # - :web
+  # - :word_of_mouth
+  # - :other
 
 # Opportunity Stage.
 #------------------------------------------------------------------------------

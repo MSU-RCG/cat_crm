@@ -18,7 +18,7 @@ en-nursing:
   #----------------------------------------------------------------------------
   tab_dashboard: Dashboard
   tab_tasks: Tasks
-  tab_campaigns: Campaigns
+  tab_campaigns: Events
   tab_leads: Students
 
   tab_accounts: Schools
@@ -51,6 +51,8 @@ en-nursing:
   converted: Converted
   legacy: Legacy
   rejected: Rejected
+  freshman: Freshman
+  transfer: Transfer
 
   cold_call: Cold Call
   conference: Conference
@@ -344,20 +346,20 @@ en-nursing:
   actual_performance: Actual Performance
   budget: Budget
   budget_label: Budget ($)
-  campaign: Campaign
-  campaign_and_leads: campaign and its students
-  campaign_small: campaign
-  campaign_summary: Campaign Summary
-  campaign_targets: Campaign Targets
-  campaign_statuses: Campaign Statuses
-  campaigns: Campaigns
-  campaigns_options: Campaigns Options
-  campaigns_small: campaigns
+  campaign: Event
+  campaign_and_leads: event and its students
+  campaign_small: event
+  campaign_summary: Event Summary
+  campaign_targets: Event Targets
+  campaign_statuses: Event Statuses
+  campaigns: Events
+  campaigns_options: Events Options
+  campaigns_small: events
   conversion: Conversion
   conversion_label: Conversion (%)
   conversion_number: "%{value} conversion"
   target_conversion: Targe conversion
-  create_campaign: Create Campaign
+  create_campaign: Create Event
   end_date: End date
   finished_on: completed on %{value}
   finishes_in: finishes in %{value}
@@ -369,13 +371,13 @@ en-nursing:
   revenue: Revenue
   revenue_label: Revenue ($)
   revenue_number: "%{value} in revenue"
-  save_campaign: Save Campaign
+  save_campaign: Save Event
   start_date: Start date
   started_ago: started %{value} ago
   starts_in: starts in %{value}
   starts_today: starts today!
   target: Target
-  total_campaigns: Total Campaigns
+  total_campaigns: Total Events
   was_supposed_to_finish: was supposed to finish on %{value}
   was_supposed_to_start: was supposed to start %{time_ago} ago on %{start_date}
   was_supposed_to_start_in: was supposed to start in %{starts_in} on %{start_date}
@@ -445,7 +447,7 @@ en-nursing:
   reject: Reject
   reject_lead_confirm: Are you sure you want to reject this lead?
   save_lead: Save Lead
-  source: Source
+  source: Student Type
   status: Status
   total_leads: Total Students
   show_status_info_small: Show status information for this lead.
