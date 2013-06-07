@@ -191,6 +191,16 @@ class LeadsController < EntitiesController
     respond_with(@leads) do |format|
       format.js { render :index }
     end
+  end  
+  #----------------------------------------------------------------------------
+  def excel_student_import
+  end
+  #----------------------------------------------------------------------------
+  def excel_student_upload
+    require 'excel_import.rb'
+      post = File.open("tempfile.xls", "wb"){ |f| f.write(params['upload'].read)}
+      ExcelImport.parse("tempfile.xls")
+      redirect_to leads_path()
   end
 
 private

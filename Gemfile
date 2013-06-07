@@ -2,9 +2,9 @@ source 'https://rubygems.org'
 
 # Uncomment the database that you have configured in config/database.yml
 # ----------------------------------------------------------------------
-gem 'mysql2'
+# gem 'mysql2'
 # gem 'sqlite3'
-# gem 'pg'
+gem 'pg'
 
 # Allows easy switching between locally developed gems, and gems installed from rubygems.org
 # See README for more info at: https://github.com/ndbroadbent/bundler_local_development
@@ -92,4 +92,5 @@ end
 
 gem 'turbo-sprockets-rails3'
 gem 'ruport'
-gem 'activerecord-mysql-adapter'
+gem 'roo'
+# Cgem 'activerecord-mysql-adapter'

@@ -1,0 +1,9 @@
+#content.main
+  %center
+    %h1 Excel Student Import
+    %p.bold
+      Welcome to the student excel sheet uploader
+    = form_tag( {:action => 'excel_student_upload'}, :multipart => true) do
+      Upload File:
+      %input{ :id => "upload-file", :type=> "file", :name=> "upload"}
+      %input{ :type => "submit", :value => "upload"}

@@ -87,6 +87,8 @@ Rails.application.routes.draw do
 
   resources :leads, :id => /\d+/ do
     collection do
+      get  :excel_student_import
+      post :excel_student_upload
       get  :advanced_search
       post :filter
       get  :options
