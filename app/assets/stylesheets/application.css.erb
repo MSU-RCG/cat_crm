@@ -31,3 +31,25 @@ Gem.loaded_specs.keys.grep(/^ffcrm_/).each do |plugin|
   require_asset(plugin) rescue Sprockets::FileNotFound
 end
 %>
+.excel_title {
+	border-bottom: 2px black solid;
+	color: black; 
+	padding: 5px; 
+	margin: 2px auto; 
+	font-size: 45px; 
+	weight: bold; 
+	width: 90%; 
+	font-position: center;
+}
+.excel_subtitle {
+	position: relitive; 
+	margin: 2px auto; 
+	width: 90%;
+	font-size: 23px;
+}
+.loader {
+	position: absolute;
+	padding: 60px; 
+	margin: 2px auto; 
+	left: 35%;
+}

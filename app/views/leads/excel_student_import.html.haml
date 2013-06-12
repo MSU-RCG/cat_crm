@@ -1,9 +1,13 @@
-#content.main
-  %center
-    %h1 Excel Student Import
-    %p.bold
-      Welcome to the student excel sheet uploader
-    = form_tag( {:action => 'excel_student_upload'}, :multipart => true) do
-      Upload File:
-      %input{ :id => "upload-file", :type=> "file", :name=> "upload"}
-      %input{ :type => "submit", :value => "upload"}
+#content.top
+  .excel_title
+    Excel Student Spreadsheet Importer
+  .excel_subtitle Welcome
+  .main.loader
+    %p
+      = form_tag( {:action => 'excel_student_upload'}, :multipart => true) do
+        %b
+          Upload File:
+        %input{ :id => "upload_file_excel", :type=> "file", :name=> "upload"}
+        %input{ :id => "excel_submit", :type => "submit", :value => "upload", :onclick => "jQuery('#loader').toggle(); jQuery('#excel_submit').toggle();"}
+          #loader{:style => "display: none;"}
+            = image_tag("loader.gif")

@@ -198,9 +198,14 @@ class LeadsController < EntitiesController
   #----------------------------------------------------------------------------
   def excel_student_upload
     require 'excel_import.rb'
-      post = File.open("tempfile.xls", "wb"){ |f| f.write(params['upload'].read)}
-      ExcelImport.parse("tempfile.xls")
-      redirect_to leads_path()
+      File.open("tempfile.xls", "wb"){ |f| f.write(params['upload'].read)}
+      begin
+        ExcelImport.parse("tempfile.xls")
+        redirect_to leads_path()
+      rescue Ole::Storage::FormatError
+        flash[:error] = "The file you uploaded was not an excel file please check your file and try again!!"
+        redirect_to :back
+      end      
   end
 
 private
