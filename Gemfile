@@ -2,9 +2,9 @@ source 'https://rubygems.org'
 
 # Uncomment the database that you have configured in config/database.yml
 # ----------------------------------------------------------------------
-# gem 'mysql2'
+gem 'mysql2'
 # gem 'sqlite3'
-gem 'pg'
+#gem 'pg'
 
 # Allows easy switching between locally developed gems, and gems installed from rubygems.org
 # See README for more info at: https://github.com/ndbroadbent/bundler_local_development
@@ -45,6 +45,7 @@ group :development do
   gem 'quiet_assets'
   gem 'capistrano'
   gem 'capistrano_colors'
+  gem 'rvm-capistrano'
 
   # Use zeus and guard gems to speed up development
   # Run 'zeus start' and 'bundle exec guard' to get going

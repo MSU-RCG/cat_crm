@@ -5,7 +5,7 @@ require 'spreadsheet'
 require 'fileutils'
 
   def self.parse(filename)
-	ex = Roo::Excel.new(filename) 
+	ex = Roo::Excelx.new(filename) 
 	ex.default_sheet = ex.sheets.first
 	header = ex.first_row
 	footer = ex.last_row
