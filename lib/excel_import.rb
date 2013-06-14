@@ -16,8 +16,9 @@ require 'fileutils'
 		l.last_name = ex.cell(line, 'B')
 		l.email = ex.cell(line, 'C')
 		l.phone = ex.cell(line, 'D')
-		l.source = ex.cell(line, 'E')
-		l.status = ex.cell(line, 'F')
+		l.source = ex.cell(line, 'E').downcase
+		l.status = ex.cell(line, 'F').downcase
+		l.cf_academic_year = ex.cell(line, 'G').to_s
 		l.save
 	}
   end

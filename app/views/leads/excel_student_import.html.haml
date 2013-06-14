@@ -1,8 +1,10 @@
 #content.top
   .excel_title
     Excel Student Spreadsheet Importer
-  .excel_subtitle Welcome
+  
   .main.loader
+    This upload accepts a .xlsx file with a specific format.
+    %br
     %p
       = form_tag( {:action => 'excel_student_upload'}, :multipart => true) do
         %b
