@@ -373,8 +373,38 @@ module ApplicationHelper
     links = %W(perm).map do |format|
       link_to(format.upcase, url_params, :title => I18n.t(:"to_#{format}"))
     end
+notes = %W(note).map do |format|
+   
 
-    (exports + feeds + links).compact.join(' | ')
+   render :partial => "build_note", :object => @token #:locals => { :leads => @leads}
+   end
+   #stylesheet_link_tag 'layout' 
+   #render :partial => "search"
+  #render :partial => "form", :locals => { :zone => @zone }
+  #render :text => "OK" ,:layout => true option
+    #render :partial => 'notes', :collection => @leads?
+
+#notes = %w(note).map do |format|
+ #     link_to(format.upcase, url_params.merge(:format => format), :title => I18n.t(:"to_#{format}")) unless action.to_s == "show"
+  
+
+#notes = %W(note).map do |format|
+      
+ #    link_to_unless_current("note", { :action => :bulk_notes, :authentication_credentials => token }) 
+  
+    
+
+   #notes = %W(note).map do |format|
+    #  link_to 'notes', '#',      :class => (url_params.merge(:action => :bulk_notes, :authentication_credentials => token) )
+  #  controller.send(:default_url_options, *params)
+     # url_for(url_params.merge(:action => 'index'))
+     #self.url_for(:action => :bulk_notes, :authentication_credentials => token)
+     # link_to "notes", params.merge(:action => :bulk_notes, :authentication_credentials => token), :class => "feed_link"
+      #link_to(format.upcase, url_params.merge(:action => :bulk_notes, :authentication_credentials => token), :title => "Bulk Add Notes") :class => "feed_link"
+   
+
+
+    (exports + feeds + links + notes).compact.join(' | ')
   end
 
   def user_options

@@ -90,6 +90,16 @@ class EntitiesController < ApplicationController
     render :text => ''
   end
 
+  #----------------------------------------------------------------------------
+  def bulk_notes
+    # create a new note
+    # add the note to all of the students
+    # save
+    
+    redirect_to :back
+  end
+
+
 protected
 
   #----------------------------------------------------------------------------

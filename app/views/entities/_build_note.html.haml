@@ -1,0 +1,13 @@
+:javascript
+  jQuery(document).ready(function(){
+    jQuery('#note_dialog').dialog().hide();
+  });
+=javascript_tag "http://code.jquery.com/jquery-1.10.1.min.js"
+=link_to_function 'notes',"jQuery('#note_dialog').show()"
+
+ 
+%div{:id=>"note_dialog" ,:title=>"Basic dialog"}
+  %p This is the default dialog which is useful for displaying information. The dialog window can be moved, resized and closed with the 'x' icon.
+
+ 
+ 

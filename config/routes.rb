@@ -35,6 +35,7 @@ Rails.application.routes.draw do
       match :auto_complete
       post :redraw
       get :versions
+      post :bulk_notes
     end
     member do
       put  :attach
@@ -55,6 +56,7 @@ Rails.application.routes.draw do
       post :auto_complete
       post :redraw
       get :versions
+      post :bulk_notes
     end
     member do
       put  :attach
@@ -75,6 +77,7 @@ Rails.application.routes.draw do
       post :auto_complete
       post :redraw
       get :versions
+      post :bulk_notes
     end
     member do
       put  :attach
@@ -96,6 +99,7 @@ Rails.application.routes.draw do
       post :auto_complete
       post :redraw
       get :versions
+      post :bulk_notes
     end
     member do
       get  :convert
@@ -119,6 +123,7 @@ Rails.application.routes.draw do
       post :auto_complete
       post :redraw
       get :versions
+      post :bulk_notes
     end
     member do
       put  :attach
