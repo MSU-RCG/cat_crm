@@ -26,6 +26,23 @@ class LeadsController < EntitiesController
     @timeline = timeline(@lead)
     respond_with(@lead)
   end
+  #----------------------------------------------------------------------------
+  def bulk_node_add
+    leads = get_leads()
+    leads.each do |lead|
+      #add note/comment
+      attributes = params[:comment] || {}
+      attributes.merge!(:user_id => current_user.id)
+      comment = Comment.new(attributes)
+      comment.commentable_id = lead.id
+      comment.commentable_type = "Lead"
+      comment.comment = params[:note]
+      comment.save
+    end
+    respond_with leads do |format|
+      format.json { render :json => leads}
+    end
+  end
 
   # GET /leads/new
   #----------------------------------------------------------------------------
@@ -266,4 +283,6 @@ private
       get_data_for_sidebar(:campaign)
     end
   end
+
+  
 end

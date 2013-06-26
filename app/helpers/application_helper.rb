@@ -376,7 +376,7 @@ module ApplicationHelper
 notes = %W(note).map do |format|
    
 
-   render :partial => "build_note", :object => @token #:locals => { :leads => @leads}
+   render :partial => "build_note", :object => @token,  :locals => { :query => params[:query], :q => params[:q] }
    end
    #stylesheet_link_tag 'layout' 
    #render :partial => "search"

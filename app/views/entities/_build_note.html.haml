@@ -1,13 +1,20 @@
 :javascript
   jQuery(document).ready(function(){
-    jQuery('#note_dialog').dialog().hide();
+    
+    jQuery('#note_dialog').dialog();
+    jQuery('.ui-dialog').css('display', 'none');
   });
 =javascript_tag "http://code.jquery.com/jquery-1.10.1.min.js"
-=link_to_function 'notes',"jQuery('#note_dialog').show()"
+=link_to_function 'Bulk Add Notes',"jQuery('.ui-dialog').show()"
 
  
-%div{:id=>"note_dialog" ,:title=>"Basic dialog"}
-  %p This is the default dialog which is useful for displaying information. The dialog window can be moved, resized and closed with the 'x' icon.
+%div.some{:id=>"note_dialog" ,:title=>"Bulk Add Notes"}
+  = form_tag("leads/bulk_node_add.json", method: "post", :remote=>true) do 
+    = label_tag(:note, "Add Notes:")
+    = hidden_field_tag 'query', query
+    %br
+    = text_area_tag(:note) 
+    %br
+    %br
+    = submit_tag("Add Notes", :onclick=>"jQuery('.ui-dialog').hide(); alert('Notes have been added')")
 
- 
- 
