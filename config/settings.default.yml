@@ -289,7 +289,12 @@ lead_status_color:
 
 lead_source:
   - :freshman
+  - :sophomore
+  - :junior
+  - :senior
   - :transfer
+  - :current_student
+  - :new_first_time
   # - :campaign
   # - :cold_call
   # - :conference

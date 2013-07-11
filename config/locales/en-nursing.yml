@@ -3,6 +3,11 @@
 # Use this as the base for the locale file of your language.
 
 "en-nursing":
+  current_student: Current Student
+  new_first_time: New First Time
+  sophomore: Sophomore
+  junior: Junior
+  senior: Senior
   date:
     formats:
       default: "%Y-%m-%d"
